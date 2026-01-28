@@ -1,0 +1,8 @@
+node_modules
+.next
+dist
+build
+*.min.js
+pnpm-lock.yaml
+src-tauri/target
+.cursor
