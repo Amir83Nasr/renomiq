@@ -39,13 +39,15 @@ export function LanguageToggle() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Languages className="h-4 w-4" />
-          <span className="hidden sm:inline">{getLanguageName()}</span>
-          <span className="text-xs font-mono">{getLanguageLabel()}</span>
-        </Button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        render={
+          <Button variant="outline" size="sm" className="gap-2">
+            <Languages className="h-4 w-4" />
+            <span className="hidden sm:inline">{getLanguageName()}</span>
+            <span className="text-xs font-mono">{getLanguageLabel()}</span>
+          </Button>
+        }
+      />
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setLanguage('en')} className="gap-2">
           <span className="text-xs font-mono">EN</span>
