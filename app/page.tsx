@@ -2,10 +2,13 @@
 
 import { useState, useMemo } from 'react';
 
-import { FileSelector } from '@/components/FileSelector';
+import { DropZone } from '@/components/DropZone';
 import { RuleEditor } from '@/components/RuleEditor';
 import { PreviewPanel } from '@/components/PreviewPanel';
-import { TauriService } from '@/src/services/tauri';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageToggle } from '@/components/LanguageToggle';
+import { FileService } from '@/lib/services/file-service';
+import { useI18n } from '@/lib/i18n/i18n';
 
 import type { FileEntry, RenamePair, RenameRule } from '@/types';
 import { applyRenameRules, buildPreview } from '@/lib/rename-rules';
@@ -15,6 +18,7 @@ function useRenamePreview(files: FileEntry[], rules: RenameRule[]) {
 }
 
 export default function Page() {
+  const t = useI18n();
   const [folder, setFolder] = useState<string | null>(null);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,22 +43,19 @@ export default function Page() {
     })
   );
 
-  async function handleChooseFolder() {
+  const handleFilesReceived = (receivedFiles: FileEntry[], folderPath: string) => {
+    setFiles(receivedFiles);
+    setFolder(folderPath);
     setError(null);
-    setLoading(true);
-    try {
-      const result = await TauriService.chooseFolder();
-      if (!result) return;
-      setFolder(result);
-      const entries = await TauriService.listFiles(result);
-      setFiles(entries);
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Failed to load folder';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }
+  };
+
+  const handleLoadingChange = (isLoading: boolean) => {
+    setLoading(isLoading);
+  };
+
+  const handleError = (errorMessage: string) => {
+    setError(errorMessage);
+  };
 
   async function handleApplyRename() {
     setError(null);
@@ -65,24 +66,26 @@ export default function Page() {
         .map((p) => ({ from: p.path, to: p.newPath! }));
 
       if (pairs.length === 0) {
-        setError('No changes to apply.');
+        setError(t('home.no_changes_to_apply'));
         return;
       }
 
+      // Apply rename is only available in Tauri
+      const { TauriService } = await import('@/lib/services/tauri');
       const result = await TauriService.applyRenames(pairs);
 
       if (!result.success) {
-        setError(result.error ?? 'Rename failed');
+        setError(result.error ?? t('home.rename_failed'));
         return;
       }
 
       // Refresh list
       if (folder) {
-        const entries = await TauriService.listFiles(folder);
+        const entries = await FileService.listFiles(folder);
         setFiles(entries);
       }
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Failed to apply rename';
+      const errorMessage = e instanceof Error ? e.message : t('errors.failed_to_apply_rename');
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -91,11 +94,20 @@ export default function Page() {
 
   return (
     <main className="bg-background text-foreground flex min-h-screen flex-col gap-4 p-4 sm:p-6">
-      <FileSelector folder={folder} loading={loading} onChooseFolder={handleChooseFolder} />
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">{t('home.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('home.subtitle')}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
+      </div>
 
       {folder && (
         <p className="text-xs text-muted-foreground truncate">
-          Active folder: <span className="font-mono">{folder}</span>
+          {t('home.active_folder')} <span className="font-mono">{folder}</span>
         </p>
       )}
 
@@ -104,6 +116,12 @@ export default function Page() {
           {error}
         </div>
       )}
+
+      <DropZone
+        onFilesReceived={handleFilesReceived}
+        onLoadingChange={handleLoadingChange}
+        onError={handleError}
+      />
 
       <div className="grid flex-1 gap-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
         <RuleEditor

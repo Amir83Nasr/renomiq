@@ -1,6 +1,6 @@
 'use client';
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/tauri';
 import type { FileEntry, RenamePair, ApplyResult } from '@/types';
 
 export function isTauriEnvironment(): boolean {
@@ -18,7 +18,7 @@ export function isTauriEnvironment(): boolean {
 function ensureTauri() {
   if (!isTauriEnvironment()) {
     throw new Error(
-      'Tauri APIs are only available in the desktop app. Run `pnpm tauri dev` instead of `pnpm dev`.'
+      'Folder selection is only available in the desktop app. Run `pnpm tauri dev` instead of `pnpm dev`.'
     );
   }
 }

@@ -12,12 +12,18 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false
+      "all": false,
+      "dialog": {
+        "open": true
+      },
+      "fs": {
+        "all": true
+      }
     },
     "bundle": {
       "active": true,
       "category": "DeveloperTool",
-      "copyright": "",
+      "copyright": "© 2024 Renomiq",
       "deb": {
         "depends": []
       },
@@ -29,8 +35,8 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
-      "longDescription": "",
+      "identifier": "com.renomiq.renamer",
+      "longDescription": "A powerful desktop batch file renaming tool built with Tauri and Next.js",
       "macOS": {
         "entitlements": null,
         "exceptionDomain": "",
@@ -39,7 +45,7 @@
         "signingIdentity": null
       },
       "resources": [],
-      "shortDescription": "",
+      "shortDescription": "Batch file renaming tool",
       "targets": "all",
       "windows": {
         "certificateThumbprint": null,
@@ -56,10 +62,13 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
+        "height": 700,
+        "width": 1100,
+        "minHeight": 500,
+        "minWidth": 800,
         "resizable": true,
         "title": "Renomiq Renamer",
-        "width": 800
+        "center": true
       }
     ]
   }

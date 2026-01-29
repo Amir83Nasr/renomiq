@@ -123,4 +123,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  .font-english {
+    font-family: var(--font-sans), sans-serif;
+  }
+  .font-persian {
+    font-family: var(--font-iran-yekan-x), sans-serif;
+  }
 }

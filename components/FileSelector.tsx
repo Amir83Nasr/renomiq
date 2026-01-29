@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { isTauriEnvironment } from '@/src/services/tauri';
+import { isTauriEnvironment } from '@/lib/services/tauri';
 
 interface FileSelectorProps {
   folder: string | null;
