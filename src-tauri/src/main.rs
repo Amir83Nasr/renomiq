@@ -64,6 +64,13 @@ pub struct ApplyResult {
     pub error: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UndoResult {
+    pub success: bool,
+    pub restored_count: usize,
+    pub error: Option<String>,
+}
+
 #[tauri::command]
 fn apply_renames(pairs: Vec<RenamePair>) -> Result<ApplyResult, String> {
     // Detect conflicts in target paths
@@ -137,12 +144,26 @@ fn apply_renames(pairs: Vec<RenamePair>) -> Result<ApplyResult, String> {
     })
 }
 
+#[tauri::command]
+fn undo_renames(pairs: Vec<RenamePair>) -> Result<UndoResult, String> {
+    // Use the same logic as apply_renames since undo is just renaming files back
+    let count = pairs.len();
+    let result = apply_renames(pairs)?;
+
+    Ok(UndoResult {
+        success: result.success,
+        restored_count: count,
+        error: result.error,
+    })
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             choose_folder,
             list_files,
-            apply_renames
+            apply_renames,
+            undo_renames
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

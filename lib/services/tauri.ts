@@ -1,7 +1,7 @@
 'use client';
 
 import { invoke } from '@tauri-apps/api/tauri';
-import type { FileEntry, RenamePair, ApplyResult } from '@/types';
+import type { FileEntry, RenamePair, ApplyResult, UndoResult } from '@/types';
 
 export function isTauriEnvironment(): boolean {
   return (
@@ -53,6 +53,17 @@ export class TauriService {
       return result;
     } catch (error) {
       console.error('Failed to apply renames:', error);
+      throw error;
+    }
+  }
+
+  static async undoRenames(pairs: RenamePair[]): Promise<UndoResult> {
+    ensureTauri();
+    try {
+      const result = await invoke<UndoResult>('undo_renames', { pairs });
+      return result;
+    } catch (error) {
+      console.error('Failed to undo renames:', error);
       throw error;
     }
   }

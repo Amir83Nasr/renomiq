@@ -29,6 +29,16 @@ export default {
     system: 'System',
     english: 'English',
     persian: 'Persian',
+    undo: 'Undo',
+    undo_success: 'Changes successfully reverted',
+    confirm: 'Confirm',
+    confirm_rename: 'Confirm Rename',
+    confirm_rename_description: 'Are you sure you want to apply these changes?',
+    files_to_rename: 'Files to rename',
+    conflicts: 'Conflicts',
+    preview_changes: 'Preview Changes',
+    more_files: 'more files',
+    processing: 'Processing...',
   },
 
   // Page specific
@@ -91,6 +101,7 @@ export default {
     failed_to_load_folder: 'Failed to load folder',
     failed_to_apply_rename: 'Failed to apply rename',
     no_changes_to_apply: 'No changes to apply.',
+    undo_failed: 'Failed to undo changes',
   },
 
   // DropZone
@@ -98,5 +109,47 @@ export default {
     title: 'Drop files here',
     subtitle: 'or click the button to browse',
     browse_button: 'Browse Folder',
+  },
+
+  // Series Renamer
+  series_renamer: {
+    title: 'Series Renamer',
+    tab_simple: 'Simple Rename',
+    tab_series: 'Series Rename',
+    metadata_title: 'Series Info',
+    series_name: 'Series Name',
+    series_name_placeholder: 'e.g. Breaking Bad',
+    season: 'Season Number',
+    start_episode: 'Start from Episode',
+    pattern_title: 'Naming Pattern',
+    pattern_custom: 'Custom',
+    pattern_sxe_dash: 'S01E05 with dash',
+    pattern_sxe_dot: 'S01E05 with dot',
+    pattern_sxe_space: 'S01E05 with space',
+    pattern_xsep: '1x05 format',
+    pattern_episode_only: 'Episode only',
+    pattern_persian: 'Persian format',
+    pattern_simple: 'Simple',
+    stats_title: 'Summary',
+    stats_groups_selected: 'Selected Groups',
+    stats_total_files: 'Total Files',
+    stats_conflicts: 'Conflicts',
+    apply_changes: 'Apply Changes',
+    processing: 'Processing...',
+    no_files_found: 'No files found',
+    active_folder: '📁 Active folder:',
+    select_all: 'Select All',
+    conflict_warning: 'Name Conflict',
+    subtitles_count: 'subtitles',
+    dubs_count: 'dubs',
+    episode_number: 'Episode',
+  },
+
+  // Media Types
+  media_types: {
+    video: 'Video',
+    subtitle: 'Subtitle',
+    dubbing: 'Dubbing',
+    other: 'Other',
   },
 };

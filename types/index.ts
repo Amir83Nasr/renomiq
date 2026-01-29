@@ -44,3 +44,19 @@ export interface RenameOptions {
   numbering: boolean;
   numberWidth: number;
 }
+
+// Undo System Types
+export interface RenameHistoryEntry {
+  id: string;
+  timestamp: number;
+  pairs: RenamePair[]; // from: newPath, to: oldPath (for undo)
+  originalPairs: RenamePair[]; // from: oldPath, to: newPath (for reference)
+  folder: string;
+  description: string;
+}
+
+export interface UndoResult {
+  success: boolean;
+  restoredCount: number;
+  error?: string;
+}

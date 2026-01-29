@@ -29,6 +29,16 @@ export default {
     system: 'سیستم',
     english: 'English',
     persian: 'فارسی',
+    undo: 'برگشت',
+    undo_success: 'تغییرات با موفقیت برگشت داده شد',
+    confirm: 'تأیید',
+    confirm_rename: 'تأیید تغییر نام',
+    confirm_rename_description: 'آیا مطمئن هستید که می‌خواهید این تغییرات را اعمال کنید؟',
+    files_to_rename: 'فایل‌های تغییر نام یافته',
+    conflicts: 'تداخل‌ها',
+    preview_changes: 'پیش‌نمایش تغییرات',
+    more_files: 'فایل‌های بیشتر',
+    processing: 'در حال پردازش...',
   },
 
   // Page specific
@@ -91,6 +101,7 @@ export default {
     failed_to_load_folder: 'خطا در بارگذاری پوشه',
     failed_to_apply_rename: 'خطا در اعمال تغییر نام',
     no_changes_to_apply: 'تغییری برای اعمال وجود ندارد',
+    undo_failed: 'خطا در برگرداندن تغییرات',
   },
 
   // DropZone
@@ -98,5 +109,47 @@ export default {
     title: 'فایل‌ها را اینجا رها کنید',
     subtitle: 'یا برای مرور روی دکمه کلیک کنید',
     browse_button: 'انتخاب پوشه',
+  },
+
+  // Series Renamer
+  series_renamer: {
+    title: 'تغییر نام سریال',
+    tab_simple: 'تغییر نام ساده',
+    tab_series: 'تغییر نام سریال',
+    metadata_title: 'اطلاعات سریال',
+    series_name: 'نام سریال',
+    series_name_placeholder: 'مثال: Breaking Bad',
+    season: 'شماره فصل',
+    start_episode: 'شروع از قسمت',
+    pattern_title: 'الگوی نام‌گذاری',
+    pattern_custom: 'سفارشی',
+    pattern_sxe_dash: 'S01E05 با خط تیره',
+    pattern_sxe_dot: 'S01E05 با نقطه',
+    pattern_sxe_space: 'S01E05 با فاصله',
+    pattern_xsep: '1x05 فرمت',
+    pattern_episode_only: 'فقط شماره قسمت',
+    pattern_persian: 'فرمت فارسی',
+    pattern_simple: 'ساده',
+    stats_title: 'خلاصه',
+    stats_groups_selected: 'گروه‌های انتخاب شده',
+    stats_total_files: 'فایل‌های کل',
+    stats_conflicts: 'تداخل‌ها',
+    apply_changes: 'اعمال تغییرات',
+    processing: 'در حال پردازش...',
+    no_files_found: 'فایلی یافت نشد',
+    active_folder: '📁 پوشه فعل:',
+    select_all: 'انتخاب همه',
+    conflict_warning: 'تداخل نام',
+    subtitles_count: 'زیرنویس',
+    dubs_count: 'دوبله',
+    episode_number: 'قسمت',
+  },
+
+  // Media Types
+  media_types: {
+    video: 'ویدیو',
+    subtitle: 'زیرنویس',
+    dubbing: 'دوبله',
+    other: 'سایر',
   },
 };

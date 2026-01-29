@@ -25,6 +25,7 @@ type FileSystemHandle = FileSystemFileHandle | { kind: 'directory'; name: string
 // Browser implementation using File System Access API
 class BrowserFileService implements FileServiceInterface {
   private dirHandle: FileSystemDirectoryHandle | null = null;
+  private currentPath: string = '';
 
   async chooseFolder(): Promise<string | null> {
     try {
@@ -35,17 +36,21 @@ class BrowserFileService implements FileServiceInterface {
             showDirectoryPicker: () => Promise<FileSystemDirectoryHandle>;
           }
         ).showDirectoryPicker();
-        return this.dirHandle.name;
+        this.currentPath = this.dirHandle.name;
+        return this.currentPath;
       }
       return null;
-    } catch {
+    } catch (error) {
       // User cancelled or API not supported
+      console.error('Error choosing folder:', error);
       return null;
     }
   }
 
-  async listFiles(): Promise<FileEntry[]> {
+  async listFiles(folder?: string): Promise<FileEntry[]> {
+    // If dirHandle is null but we have a folder name, try to work with what we have
     if (!this.dirHandle) {
+      console.error('No directory handle available. Did you call chooseFolder first?');
       return [];
     }
 
@@ -61,14 +66,15 @@ class BrowserFileService implements FileServiceInterface {
           const ext = name.includes('.') ? name.split('.').pop() || '' : '';
 
           entries.push({
-            path: `${this.dirHandle.name}/${name}`,
+            path: `${this.dirHandle!.name}/${name}`,
             name,
             extension: ext,
           });
         }
       }
       return entries;
-    } catch {
+    } catch (error) {
+      console.error('Error listing files:', error);
       return [];
     }
   }
@@ -77,6 +83,7 @@ class BrowserFileService implements FileServiceInterface {
 // Unified file service that works in both environments
 export class FileService {
   private static browserService: BrowserFileService | null = null;
+  private static lastFolderPath: string | null = null;
 
   private static getBrowserService(): BrowserFileService {
     if (!this.browserService) {
@@ -86,21 +93,39 @@ export class FileService {
   }
 
   static async chooseFolder(): Promise<string | null> {
-    if (isTauriEnvironment()) {
-      return TauriService.chooseFolder();
+    try {
+      if (isTauriEnvironment()) {
+        const result = await TauriService.chooseFolder();
+        this.lastFolderPath = result;
+        return result;
+      }
+      const result = await this.getBrowserService().chooseFolder();
+      this.lastFolderPath = result;
+      return result;
+    } catch (error) {
+      console.error('Error in chooseFolder:', error);
+      throw error;
     }
-    return this.getBrowserService().chooseFolder();
   }
 
   static async listFiles(folder: string): Promise<FileEntry[]> {
-    if (isTauriEnvironment()) {
-      return TauriService.listFiles(folder);
+    try {
+      if (isTauriEnvironment()) {
+        return await TauriService.listFiles(folder);
+      }
+      return await this.getBrowserService().listFiles(folder);
+    } catch (error) {
+      console.error('Error in listFiles:', error);
+      throw error;
     }
-    return this.getBrowserService().listFiles();
   }
 
   static isBrowserSupported(): boolean {
     return 'showDirectoryPicker' in window || isTauriEnvironment();
+  }
+
+  static getLastFolderPath(): string | null {
+    return this.lastFolderPath;
   }
 }
 
