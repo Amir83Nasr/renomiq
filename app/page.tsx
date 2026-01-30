@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropZone } from '@/components/DropZone';
-import { RuleEditor } from '@/components/RuleEditor';
-import { PreviewPanel } from '@/components/PreviewPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { ConfirmRenameDialog } from '@/components/ConfirmRenameDialog';
@@ -13,7 +11,9 @@ import { UndoButton } from '@/components/UndoButton';
 import { FileService } from '@/lib/services/file-service';
 import { UndoService } from '@/lib/services/undo-service';
 import { useI18n } from '@/lib/i18n/i18n';
-import { SeriesRenamerSection } from '@/app/sections/SeriesRenamerSection';
+import { FolderRenamerSection } from '@/app/sections/FolderRenamerSection';
+import { CompactFileList } from '@/components/CompactFileList';
+import { CollapsibleRuleEditor } from '@/components/CollapsibleRuleEditor';
 
 import type { FileEntry, RenamePair, RenameRule } from '@/types';
 import { applyRenameRules, buildPreview } from '@/lib/rename-rules';
@@ -22,8 +22,8 @@ function useRenamePreview(files: FileEntry[], rules: RenameRule[]) {
   return useMemo(() => buildPreview(files, rules), [files, rules]);
 }
 
-// Simple Renamer Section Component
-function SimpleRenamerSection() {
+// File Renamer Section Component with improved UX
+function FileRenamerSection() {
   const t = useI18n();
   const [folder, setFolder] = useState<string | null>(null);
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -32,6 +32,10 @@ function SimpleRenamerSection() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // File selection state
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+
+  // Rule state
   const [search, setSearch] = useState('');
   const [replace, setReplace] = useState('');
   const [prefix, setPrefix] = useState('');
@@ -39,8 +43,13 @@ function SimpleRenamerSection() {
   const [numbering, setNumbering] = useState(false);
   const [numberWidth, setNumberWidth] = useState(2);
 
+  // Only apply rename rules to selected files
+  const selectedFileEntries = useMemo(() => {
+    return files.filter((f) => selectedFiles.has(f.path));
+  }, [files, selectedFiles]);
+
   const preview = useRenamePreview(
-    files,
+    selectedFileEntries,
     applyRenameRules({
       search,
       replace,
@@ -55,6 +64,8 @@ function SimpleRenamerSection() {
     setFiles(receivedFiles);
     setFolder(folderPath);
     setError(null);
+    // Select all files by default
+    setSelectedFiles(new Set(receivedFiles.map((f) => f.path)));
   };
 
   const handleLoadingChange = (isLoading: boolean) => {
@@ -64,6 +75,44 @@ function SimpleRenamerSection() {
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
   };
+
+  // Handle file selection
+  const handleSelectionChange = useCallback((path: string, selected: boolean) => {
+    setSelectedFiles((prev) => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(path);
+      } else {
+        next.delete(path);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(
+    (selected: boolean) => {
+      if (selected) {
+        setSelectedFiles(new Set(files.map((f) => f.path)));
+      } else {
+        setSelectedFiles(new Set());
+      }
+    },
+    [files]
+  );
+
+  const handleSelectFiltered = useCallback((paths: string[], selected: boolean) => {
+    setSelectedFiles((prev) => {
+      const next = new Set(prev);
+      paths.forEach((path) => {
+        if (selected) {
+          next.add(path);
+        } else {
+          next.delete(path);
+        }
+      });
+      return next;
+    });
+  }, []);
 
   async function handleApplyRename() {
     setError(null);
@@ -93,16 +142,17 @@ function SimpleRenamerSection() {
       const historyEntry = UndoService.createHistoryEntry(
         pairs,
         folder || '',
-        `تغییر نام ${pairs.length} فایل`
+        `${t('folder_renamer.undo_description')} ${pairs.length} ${t('rule_editor.files_loaded')}`
       );
       UndoService.addToHistory(historyEntry);
 
       // Show success message
-      setSuccessMessage(`${pairs.length} فایل با موفقیت تغییر نام یافت`);
+      setSuccessMessage(`${pairs.length} ${t('home.rename_success')}`);
 
       if (folder) {
         const entries = await FileService.listFiles(folder);
         setFiles(entries);
+        setSelectedFiles(new Set(entries.map((f) => f.path)));
       }
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : t('errors.failed_to_apply_rename');
@@ -134,7 +184,7 @@ function SimpleRenamerSection() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-3xl mx-auto">
       <DropZone
         onFilesReceived={handleFilesReceived}
         onLoadingChange={handleLoadingChange}
@@ -160,17 +210,27 @@ function SimpleRenamerSection() {
         </div>
       )}
 
-      <div className="grid flex-1 gap-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
-        <RuleEditor
+      {files.length > 0 && (
+        <CompactFileList
+          files={files}
+          preview={preview}
+          selectedFiles={selectedFiles}
+          onSelectionChange={handleSelectionChange}
+          onSelectAll={handleSelectAll}
+          onSelectFiltered={handleSelectFiltered}
+        />
+      )}
+
+      {files.length > 0 && (
+        <CollapsibleRuleEditor
           search={search}
           replace={replace}
           prefix={prefix}
           suffix={suffix}
           numbering={numbering}
           numberWidth={numberWidth}
-          preview={preview}
           loading={loading}
-          folder={folder}
+          hasItems={selectedFiles.size > 0}
           onSearchChange={setSearch}
           onReplaceChange={setReplace}
           onPrefixChange={setPrefix}
@@ -179,9 +239,7 @@ function SimpleRenamerSection() {
           onNumberWidthChange={setNumberWidth}
           onApplyRename={handleConfirmDialogOpen}
         />
-
-        <PreviewPanel preview={preview} />
-      </div>
+      )}
 
       <ConfirmRenameDialog
         open={showConfirmDialog}
@@ -200,9 +258,11 @@ export default function Page() {
   return (
     <main className="bg-background text-foreground flex min-h-screen flex-col gap-4 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t('home.title')}</h1>
-          <p className="text-muted-foreground text-sm">{t('home.subtitle')}</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">{t('home.title')}</h1>
+            <p className="text-muted-foreground text-sm">{t('home.subtitle')}</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <LanguageToggle />
@@ -210,18 +270,18 @@ export default function Page() {
         </div>
       </div>
 
-      <Tabs defaultValue="simple" className="flex-1">
+      <Tabs defaultValue="file" className="flex-1">
         <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="simple">{t('series_renamer.tab_simple')}</TabsTrigger>
-          <TabsTrigger value="series">{t('series_renamer.tab_series')}</TabsTrigger>
+          <TabsTrigger value="file">{t('series_renamer.tab_file')}</TabsTrigger>
+          <TabsTrigger value="folder">{t('series_renamer.tab_series')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="simple" className="mt-4">
-          <SimpleRenamerSection />
+        <TabsContent value="file" className="mt-4">
+          <FileRenamerSection />
         </TabsContent>
 
-        <TabsContent value="series" className="mt-4">
-          <SeriesRenamerSection />
+        <TabsContent value="folder" className="mt-4">
+          <FolderRenamerSection />
         </TabsContent>
       </Tabs>
     </main>

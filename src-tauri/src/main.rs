@@ -18,10 +18,18 @@ pub struct RenamePair {
 }
 
 #[tauri::command]
-fn choose_folder(_window: tauri::Window) -> Result<Option<String>, String> {
-    let dialog = tauri::api::dialog::blocking::FileDialogBuilder::new();
-    let result = dialog.pick_folder();
-    Ok(result.map(|p| p.to_string_lossy().to_string()))
+async fn choose_folder() -> Result<Option<String>, String> {
+    // Use tokio channel to convert callback-based dialog to async
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    
+    tauri::api::dialog::FileDialogBuilder::new().pick_folder(move |path| {
+        let _ = tx.send(path);
+    });
+    
+    match rx.await {
+        Ok(path) => Ok(path.map(|p| p.to_string_lossy().to_string())),
+        Err(_) => Err("Dialog cancelled".to_string()),
+    }
 }
 
 #[tauri::command]
@@ -157,13 +165,51 @@ fn undo_renames(pairs: Vec<RenamePair>) -> Result<UndoResult, String> {
     })
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FolderEntry {
+    pub path: String,
+    pub name: String,
+}
+
+#[tauri::command]
+fn list_subfolders(folder: String) -> Result<Vec<FolderEntry>, String> {
+    let path = PathBuf::from(&folder);
+    if !path.is_dir() {
+        return Err("Not a directory".into());
+    }
+
+    let mut entries = Vec::new();
+
+    for entry in fs::read_dir(&path).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let meta = entry.metadata().map_err(|e| e.to_string())?;
+        if !meta.is_dir() {
+            continue;
+        }
+
+        let p = entry.path();
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        entries.push(FolderEntry {
+            path: p.to_string_lossy().to_string(),
+            name,
+        });
+    }
+
+    // Sort by name
+    entries.sort_by(|a, b| a.name.cmp(&b.name));
+
+    Ok(entries)
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             choose_folder,
             list_files,
             apply_renames,
-            undo_renames
+            undo_renames,
+            list_subfolders
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

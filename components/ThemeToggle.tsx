@@ -2,7 +2,6 @@
 
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,11 +38,9 @@ export function ThemeToggle() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Button variant="outline" size="sm" className="gap-2">
-          {getThemeIcon()}
-          <span className="hidden sm:inline">{getThemeLabel()}</span>
-        </Button>
+      <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3">
+        {getThemeIcon()}
+        <span className="hidden sm:inline">{getThemeLabel()}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme('light')} className="gap-2">

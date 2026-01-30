@@ -29,6 +29,8 @@ export default {
     system: 'System',
     english: 'English',
     persian: 'Persian',
+    all: 'All',
+    hold_shift_for_range_selection: 'Hold Shift and click for range selection',
     undo: 'Undo',
     undo_success: 'Changes successfully reverted',
     confirm: 'Confirm',
@@ -114,8 +116,8 @@ export default {
   // Series Renamer
   series_renamer: {
     title: 'Series Renamer',
-    tab_simple: 'Simple Rename',
-    tab_series: 'Series Rename',
+    tab_file: 'File Rename',
+    tab_series: 'Folder Rename',
     metadata_title: 'Series Info',
     series_name: 'Series Name',
     series_name_placeholder: 'e.g. Breaking Bad',
@@ -151,5 +153,15 @@ export default {
     subtitle: 'Subtitle',
     dubbing: 'Dubbing',
     other: 'Other',
+  },
+
+  // Folder Renamer
+  folder_renamer: {
+    title: 'Folder Rename',
+    parent_folder: 'Parent Folder:',
+    folders_loaded: 'folders',
+    no_folders_found: 'No folders found',
+    success_message: 'folders renamed successfully',
+    undo_description: 'Rename',
   },
 };

@@ -41,8 +41,8 @@ export function LanguageToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="outline" size="sm" className="gap-2">
-            <Languages className="h-4 w-4" />
+          <Button variant="outline" size="sm" className="h-8 px-3 gap-2 text-sm">
+            <Languages className="size-[16px]" />
             <span className="hidden sm:inline">{getLanguageName()}</span>
             <span className="text-xs font-mono">{getLanguageLabel()}</span>
           </Button>

@@ -71,15 +71,50 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
       try {
         onLoadingChange(true);
 
-        const folderPath = await FileService.chooseFolder();
+        // Get the folder path from the dropped file/folder
+        let folderPath: string | null = null;
+
+        // In Tauri environment with file-drop event, the path is available
+        // In browser, we might need to use the File API
+        const droppedFile = acceptedFiles[0];
+        if (droppedFile) {
+          // For directories dropped via File System Access API
+          // The webkitGetAsEntry() method returns a FileSystemDirectoryEntry
+          // @ts-expect-error - webkitGetAsEntry is not in TS types yet
+          const entry = droppedFile.webkitGetAsEntry?.();
+          if (entry?.isDirectory) {
+            // Use the path from the File object if available
+            // @ts-expect-error - path is a custom property
+            folderPath = droppedFile.path || droppedFile.webkitRelativePath?.split('/')[0] || null;
+          } else {
+            // For files, try to get the parent directory
+            // @ts-expect-error - path is a custom property
+            folderPath = droppedFile.path ? droppedFile.path.replace(/\/[^/]*$/, '') : null;
+          }
+        }
+
+        console.log(
+          '[DropZone] Dropped folderPath:',
+          folderPath,
+          'acceptedFiles:',
+          acceptedFiles.length
+        );
+
         if (!folderPath) {
-          onError('No folder selected');
+          // Fallback: open folder dialog
+          folderPath = await FileService.chooseFolder();
+        }
+
+        if (!folderPath) {
+          onLoadingChange(false);
           return;
         }
 
         const entries = await FileService.listFiles(folderPath);
+        console.log('[DropZone] Files loaded:', entries.length);
         onFilesReceived(entries, folderPath);
       } catch (err: unknown) {
+        console.error('[DropZone] Error processing dropped folder:', err);
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to process dropped folder';
         onError(errorMessage);
@@ -99,6 +134,12 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
     multiple: false,
   });
 
+  const isTauri = isTauriEnvironment();
+
+  console.log('[DropZone] Environment check - isTauri:', isTauri);
+  console.log('[DropZone] Tauri internals:', '__TAURI_INTERNALS__' in window);
+  console.log('[DropZone] showDirectoryPicker:', 'showDirectoryPicker' in window);
+
   return (
     <Card
       {...getRootProps()}
@@ -115,29 +156,41 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
           </h3>
           <p className="text-xs sm:text-sm text-muted-foreground">{t('dropzone.subtitle')}</p>
         </div>
-        <Button
-          type="button"
-          onClick={async (e) => {
-            e.stopPropagation();
-            try {
-              onLoadingChange(true);
-              const folderPath = await FileService.chooseFolder();
-              if (!folderPath) return;
+        <div className="flex flex-col gap-3">
+          <Button
+            type="button"
+            onClick={async (e) => {
+              e.stopPropagation();
+              console.log('[DropZone] Browse button clicked, isTauri:', isTauri);
+              try {
+                onLoadingChange(true);
+                console.log('[DropZone] Calling FileService.chooseFolder()...');
+                const folderPath = await FileService.chooseFolder();
+                console.log('[DropZone] Folder selected:', folderPath);
+                if (!folderPath) {
+                  console.log('[DropZone] No folder selected (user cancelled)');
+                  onLoadingChange(false);
+                  return;
+                }
 
-              const entries = await FileService.listFiles(folderPath);
-              onFilesReceived(entries, folderPath);
-            } catch (err: unknown) {
-              const errorMessage = err instanceof Error ? err.message : 'Failed to select folder';
-              onError(errorMessage);
-            } finally {
-              onLoadingChange(false);
-            }
-          }}
-          className="flex items-center gap-2"
-        >
-          <FolderOpen className="h-4 w-4" />
-          {t('dropzone.browse_button')}
-        </Button>
+                console.log('[DropZone] Listing files in folder...');
+                const entries = await FileService.listFiles(folderPath);
+                console.log('[DropZone] Files found:', entries.length);
+                onFilesReceived(entries, folderPath);
+              } catch (err: unknown) {
+                console.error('[DropZone] Error selecting folder:', err);
+                const errorMessage = err instanceof Error ? err.message : 'Failed to select folder';
+                onError(errorMessage);
+              } finally {
+                onLoadingChange(false);
+              }
+            }}
+            className="flex items-center gap-2 min-w-[140px]"
+          >
+            <FolderOpen className="h-4 w-4" />
+            {t('dropzone.browse_button')}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

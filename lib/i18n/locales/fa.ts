@@ -29,6 +29,8 @@ export default {
     system: 'سیستم',
     english: 'English',
     persian: 'فارسی',
+    all: 'همه',
+    hold_shift_for_range_selection: 'برای انتخاب گروهی، Shift را نگه دارید و کلیک کنید',
     undo: 'برگشت',
     undo_success: 'تغییرات با موفقیت برگشت داده شد',
     confirm: 'تأیید',
@@ -114,8 +116,8 @@ export default {
   // Series Renamer
   series_renamer: {
     title: 'تغییر نام سریال',
-    tab_simple: 'تغییر نام ساده',
-    tab_series: 'تغییر نام سریال',
+    tab_file: 'تغییر نام فایل',
+    tab_series: 'تغییر نام پوشه',
     metadata_title: 'اطلاعات سریال',
     series_name: 'نام سریال',
     series_name_placeholder: 'مثال: Breaking Bad',
@@ -151,5 +153,15 @@ export default {
     subtitle: 'زیرنویس',
     dubbing: 'دوبله',
     other: 'سایر',
+  },
+
+  // Folder Renamer
+  folder_renamer: {
+    title: 'تغییر نام پوشه',
+    parent_folder: 'پوشه والد:',
+    folders_loaded: 'پوشه',
+    no_folders_found: 'پوشه‌ای یافت نشد',
+    success_message: 'پوشه با موفقیت تغییر نام یافت',
+    undo_description: 'تغییر نام',
   },
 };

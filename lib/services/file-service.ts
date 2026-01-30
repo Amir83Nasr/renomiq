@@ -41,7 +41,10 @@ class BrowserFileService implements FileServiceInterface {
       }
       return null;
     } catch (error) {
-      // User cancelled or API not supported
+      // User cancelled the picker - this is expected behavior
+      if (error instanceof Error && error.name === 'AbortError') {
+        return null;
+      }
       console.error('Error choosing folder:', error);
       return null;
     }
@@ -94,16 +97,28 @@ export class FileService {
 
   static async chooseFolder(): Promise<string | null> {
     try {
-      if (isTauriEnvironment()) {
+      const isTauri = isTauriEnvironment();
+      console.log('[FileService] chooseFolder called');
+      console.log('[FileService] Environment detection:');
+      console.log('  - isTauri:', isTauri);
+      console.log('  - __TAURI_INTERNALS__:', '__TAURI_INTERNALS__' in window);
+      console.log('  - userAgent includes Tauri:', navigator.userAgent.includes('Tauri'));
+      console.log('  - showDirectoryPicker:', 'showDirectoryPicker' in window);
+
+      if (isTauri) {
+        console.log('[FileService] Using TauriService');
         const result = await TauriService.chooseFolder();
+        console.log('[FileService] TauriService result:', result);
         this.lastFolderPath = result;
         return result;
       }
+      console.log('[FileService] Using BrowserFileService');
       const result = await this.getBrowserService().chooseFolder();
+      console.log('[FileService] BrowserFileService result:', result);
       this.lastFolderPath = result;
       return result;
     } catch (error) {
-      console.error('Error in chooseFolder:', error);
+      console.error('[FileService] Error in chooseFolder:', error);
       throw error;
     }
   }
