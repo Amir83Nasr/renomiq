@@ -1,22 +1,24 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropZone } from '@/components/DropZone';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { LanguageToggle } from '@/components/LanguageToggle';
-import { ConfirmRenameDialog } from '@/components/ConfirmRenameDialog';
-import { UndoButton } from '@/components/UndoButton';
-import { FileService } from '@/lib/services/file-service';
-import { UndoService } from '@/lib/services/undo-service';
+import { DropZone } from '@/features/renamer/components/DropZone';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { LanguageToggle } from '@/components/common/LanguageToggle';
+import { ConfirmRenameDialog } from '@/features/renamer/components/ConfirmRenameDialog';
+import { FloatingActionButtons } from '@/components/layout/FloatingActionButtons';
+import { ProgressIndicator } from '@/features/renamer/components/ProgressIndicator';
+
+import { FileService } from '@/services/file-service';
+import { UndoService } from '@/services/undo-service';
 import { useI18n } from '@/lib/i18n/i18n';
-import { FolderRenamerSection } from '@/app/sections/FolderRenamerSection';
-import { CompactFileList } from '@/components/CompactFileList';
-import { CollapsibleRuleEditor } from '@/components/CollapsibleRuleEditor';
+import { CompactFileList } from '@/features/renamer/components/CompactFileList';
+import { CollapsibleRuleEditor } from '@/features/renamer/components/CollapsibleRuleEditor';
+import { toast } from 'sonner';
 
-import type { FileEntry, RenamePair, RenameRule } from '@/types';
-import { applyRenameRules, buildPreview } from '@/lib/rename-rules';
+import type { FileEntry, RenamePair } from '@/types';
+import { applyRenameRules, buildPreview } from '@/lib/utils/rename-rules';
+import type { RenameRule } from '@/lib/utils/rename-rules';
 
 function useRenamePreview(files: FileEntry[], rules: RenameRule[]) {
   return useMemo(() => buildPreview(files, rules), [files, rules]);
@@ -28,9 +30,11 @@ function FileRenamerSection() {
   const [folder, setFolder] = useState<string | null>(null);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [progressStatus, setProgressStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(
+    'idle'
+  );
+  const [progressMessage, setProgressMessage] = useState<string>('');
 
   // File selection state
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -42,6 +46,8 @@ function FileRenamerSection() {
   const [suffix, setSuffix] = useState('');
   const [numbering, setNumbering] = useState(false);
   const [numberWidth, setNumberWidth] = useState(2);
+  const [newName, setNewName] = useState('');
+  const [keepExtension, setKeepExtension] = useState(true);
 
   // Only apply rename rules to selected files
   const selectedFileEntries = useMemo(() => {
@@ -57,23 +63,43 @@ function FileRenamerSection() {
       suffix,
       numbering,
       numberWidth,
+      newName,
+      keepExtension,
     })
   );
 
-  const handleFilesReceived = (receivedFiles: FileEntry[], folderPath: string) => {
+  const handleFilesReceived = (receivedFiles: FileEntry[], sourcePath: string) => {
     setFiles(receivedFiles);
-    setFolder(folderPath);
-    setError(null);
+    setFolder(sourcePath);
     // Select all files by default
     setSelectedFiles(new Set(receivedFiles.map((f) => f.path)));
+
+    // Show appropriate message based on source
+    const isFileSelection = sourcePath === 'selected-files';
+    toast.success(
+      isFileSelection
+        ? t('dropzone.files_selected') || 'Files selected'
+        : t('rule_editor.files_loaded'),
+      {
+        description: `${receivedFiles.length} ${t('rule_editor.files_loaded')}`,
+      }
+    );
   };
 
   const handleLoadingChange = (isLoading: boolean) => {
     setLoading(isLoading);
+    if (isLoading) {
+      setProgressStatus('loading');
+      setProgressMessage('Loading files...');
+    } else {
+      setProgressStatus('idle');
+    }
   };
 
   const handleError = (errorMessage: string) => {
-    setError(errorMessage);
+    toast.error(errorMessage);
+    setProgressStatus('error');
+    setProgressMessage(errorMessage);
   };
 
   // Handle file selection
@@ -114,27 +140,104 @@ function FileRenamerSection() {
     });
   }, []);
 
+  const handleInvertSelection = useCallback(() => {
+    setSelectedFiles((prev) => {
+      const next = new Set<string>();
+      files.forEach((f) => {
+        if (!prev.has(f.path)) {
+          next.add(f.path);
+        }
+      });
+      return next;
+    });
+  }, [files]);
+
+  const handleClearAll = useCallback(() => {
+    setFiles([]);
+    setFolder(null);
+    setSelectedFiles(new Set());
+    setSearch('');
+    setReplace('');
+    setPrefix('');
+    setSuffix('');
+    setNumbering(false);
+    setNumberWidth(2);
+    setNewName('');
+    setKeepExtension(true);
+  }, []);
+
+  // Abort controller for canceling operations
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+
+  // Check if running in Tauri environment
+  const [isTauri, setIsTauri] = useState(false);
+
+  // Store directory handle for browser mode
+  const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
+
+  useEffect(() => {
+    // Dynamic import to check Tauri environment
+    import('@/services/tauri').then(({ isTauriEnvironment }) => {
+      setIsTauri(isTauriEnvironment());
+    });
+  }, []);
+
+  // Update dirHandle when folder changes in browser mode
+  useEffect(() => {
+    if (!isTauri && folder) {
+      const handle = FileService.getLastDirHandle();
+      setDirHandle(handle);
+    }
+  }, [folder, isTauri]);
+
+  const handleAbortOperation = useCallback(() => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setLoading(false);
+      setProgressStatus('idle');
+      toast.info(t('common.operation_cancelled'));
+    }
+    setShowConfirmDialog(false);
+  }, [abortController, t]);
+
   async function handleApplyRename() {
-    setError(null);
-    setSuccessMessage(null);
+    const controller = new AbortController();
+    setAbortController(controller);
     setLoading(true);
+    setProgressStatus('loading');
+    setProgressMessage('Applying rename changes...');
     try {
       const pairs: RenamePair[] = preview
         .filter((p) => p.newName && p.newName !== p.oldName && !p.conflict)
         .map((p) => ({ from: p.path, to: p.newPath! }));
 
       if (pairs.length === 0) {
-        setError(t('home.no_changes_to_apply'));
+        toast.warning(t('home.no_changes_to_apply'));
         setLoading(false);
+        setProgressStatus('idle');
         return;
       }
 
-      const { TauriService } = await import('@/lib/services/tauri');
-      const result = await TauriService.applyRenames(pairs);
+      let result;
+      if (isTauri) {
+        const { TauriService } = await import('@/services/tauri');
+        result = await TauriService.applyRenames(pairs);
+      } else if (dirHandle) {
+        const { browserApplyRenames } = await import('@/services/browser-file-service');
+        result = await browserApplyRenames(dirHandle, pairs);
+      } else {
+        toast.error(t('errors.no_folder_selected'));
+        setLoading(false);
+        setShowConfirmDialog(false);
+        return;
+      }
 
       if (!result.success) {
-        setError(result.error ?? t('home.rename_failed'));
+        toast.error(result.error ?? t('home.rename_failed'));
         setLoading(false);
+        setProgressStatus('error');
+        setProgressMessage(result.error ?? t('home.rename_failed'));
         return;
       }
 
@@ -146,19 +249,32 @@ function FileRenamerSection() {
       );
       UndoService.addToHistory(historyEntry);
 
-      // Show success message
-      setSuccessMessage(`${pairs.length} ${t('home.rename_success')}`);
+      // Show success toast
+      toast.success(`${pairs.length} ${t('home.rename_success')}`, {
+        action: {
+          label: t('common.undo'),
+          onClick: () => UndoService.undo(),
+        },
+      });
 
-      if (folder) {
+      setProgressStatus('success');
+      setProgressMessage(`${pairs.length} files renamed successfully!`);
+
+      // Only refresh folder contents if a folder was selected (not individual files)
+      if (folder && folder !== 'selected-files') {
         const entries = await FileService.listFiles(folder);
         setFiles(entries);
         setSelectedFiles(new Set(entries.map((f) => f.path)));
       }
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : t('errors.failed_to_apply_rename');
-      setError(errorMessage);
+      toast.error(errorMessage);
+      setProgressStatus('error');
+      setProgressMessage(errorMessage);
     } finally {
       setLoading(false);
+      setAbortController(null);
+      setTimeout(() => setProgressStatus('idle'), 3000);
     }
   }
 
@@ -184,29 +300,34 @@ function FileRenamerSection() {
   };
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-4 max-w-4xl mx-auto pb-24 md:pb-0">
       <DropZone
         onFilesReceived={handleFilesReceived}
         onLoadingChange={handleLoadingChange}
         onError={handleError}
       />
 
+      {progressStatus !== 'idle' && (
+        <ProgressIndicator status={progressStatus} message={progressMessage} />
+      )}
+
       {folder && (
-        <p className="text-xs text-muted-foreground truncate">
-          {t('home.active_folder')} <span className="font-mono">{folder}</span>
-        </p>
-      )}
-
-      {error && (
-        <div className="border-destructive bg-destructive/10 text-destructive mt-2 rounded-md border px-3 py-2 text-sm">
-          {error}
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="bg-green-500/10 text-green-600 dark:text-green-400 mt-2 rounded-md border border-green-500/20 px-3 py-2 text-sm flex items-center gap-2">
-          <span>{successMessage}</span>
-          <UndoButton onUndoComplete={() => setSuccessMessage(null)} />
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs sm:text-sm text-muted-foreground truncate flex-1">
+            {folder === 'selected-files' ? (
+              `${t('dropzone.selected_files_count') || 'Selected files'}: ${files.length}`
+            ) : (
+              <>
+                {t('home.active_folder')} <span className="font-mono">{folder}</span>
+              </>
+            )}
+          </p>
+          <button
+            onClick={handleClearAll}
+            className="text-xs text-destructive hover:text-destructive/80 hover:underline transition-colors"
+          >
+            {t('common.clear') || 'Clear'}
+          </button>
         </div>
       )}
 
@@ -229,6 +350,8 @@ function FileRenamerSection() {
           suffix={suffix}
           numbering={numbering}
           numberWidth={numberWidth}
+          newName={newName}
+          keepExtension={keepExtension}
           loading={loading}
           hasItems={selectedFiles.size > 0}
           onSearchChange={setSearch}
@@ -237,16 +360,32 @@ function FileRenamerSection() {
           onSuffixChange={setSuffix}
           onNumberingChange={setNumbering}
           onNumberWidthChange={setNumberWidth}
+          onNewNameChange={setNewName}
+          onKeepExtensionChange={setKeepExtension}
           onApplyRename={handleConfirmDialogOpen}
         />
       )}
+
+      {/* Floating Action Buttons for Mobile */}
+      <FloatingActionButtons
+        onSelectAll={() => handleSelectAll(true)}
+        onUndo={() => UndoService.undo()}
+        onApply={handleConfirmDialogOpen}
+        showApply={selectedFiles.size > 0}
+        disabled={loading}
+        selectedCount={selectedFiles.size}
+      />
 
       <ConfirmRenameDialog
         open={showConfirmDialog}
         onOpenChange={handleConfirmDialogClose}
         onConfirm={handleConfirmDialogConfirm}
+        onCancel={handleAbortOperation}
         pairs={getConfirmPairs()}
         loading={loading}
+        operationInProgress={loading}
+        onAbort={handleAbortOperation}
+        isTauri={isTauri}
       />
     </div>
   );
@@ -256,12 +395,12 @@ export default function Page() {
   const t = useI18n();
 
   return (
-    <main className="bg-background text-foreground flex min-h-screen flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-4">
+    <main className="bg-background text-foreground flex min-h-screen flex-col gap-4 sm:gap-6 p-4 sm:p-6 md:p-8 pb-20 md:pb-8">
+      <div className="flex items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">{t('home.title')}</h1>
-            <p className="text-muted-foreground text-sm">{t('home.subtitle')}</p>
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t('home.title')}</h1>
+            <p className="text-muted-foreground text-sm hidden sm:block">{t('home.subtitle')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -270,20 +409,10 @@ export default function Page() {
         </div>
       </div>
 
-      <Tabs defaultValue="file" className="flex-1">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="file">{t('series_renamer.tab_file')}</TabsTrigger>
-          <TabsTrigger value="folder">{t('series_renamer.tab_series')}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="file" className="mt-4">
-          <FileRenamerSection />
-        </TabsContent>
-
-        <TabsContent value="folder" className="mt-4">
-          <FolderRenamerSection />
-        </TabsContent>
-      </Tabs>
+      {/* Main Content - File Renamer Only */}
+      <div className="flex-1">
+        <FileRenamerSection />
+      </div>
     </main>
   );
 }

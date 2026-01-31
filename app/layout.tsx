@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Inter } from 'next/font/google';
 import localFont from 'next/font/local';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { AppWrapper } from '@/context/AppContext';
-import { I18nProvider } from '@/components/I18nProvider';
-import { DirectionHandler } from '@/components/DirectionHandler';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { AppWrapper } from '@/features/renamer/stores/AppContext';
+import { I18nProvider } from '@/components/common/I18nProvider';
+import { DirectionHandler } from '@/components/common/DirectionHandler';
 import { ThemeProvider } from 'next-themes';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -99,6 +100,14 @@ export default function RootLayout({
               <ErrorBoundary>{children}</ErrorBoundary>
             </AppWrapper>
           </I18nProvider>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              className: 'bg-card border-border/50 shadow-lg rounded-xl',
+              duration: 4000,
+            }}
+            className="[&_[data-sonner-toast]]:bg-card [&_[data-sonner-toast]]:border-border/50 [&_[data-sonner-toast]]:shadow-lg [&_[data-sonner-toast]]:rounded-xl"
+          />
         </ThemeProvider>
       </body>
     </html>
