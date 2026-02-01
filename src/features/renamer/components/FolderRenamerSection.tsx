@@ -15,7 +15,6 @@ import { UndoService } from '@/services/undo-service';
 import { useI18n } from '@/lib/i18n/i18n';
 import { applyRenameRules, buildPreview } from '@/lib/utils/rename-rules';
 import type { RenameRule } from '@/lib/utils/rename-rules';
-import { toast } from 'sonner';
 import type { RenamePair } from '@/types';
 
 export function FolderRenamerSection() {
@@ -46,12 +45,8 @@ export function FolderRenamerSection() {
       setFolders(subfolders);
       // Select all by default
       setSelectedFolders(new Set(subfolders.map((f) => f.path)));
-      toast.success(t('rule_editor.files_loaded'), {
-        description: `${subfolders.length} ${t('folder_renamer.folders_loaded')}`,
-      });
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to list subfolders';
-      toast.error(errorMessage);
+    } catch {
+      // Silent error handling
     } finally {
       setLoading(false);
     }
@@ -153,7 +148,6 @@ export function FolderRenamerSection() {
         }));
 
       if (pairs.length === 0) {
-        toast.warning(t('home.no_changes_to_apply'));
         setLoading(false);
         return;
       }
@@ -162,7 +156,6 @@ export function FolderRenamerSection() {
       const result = await TauriService.applyRenames(pairs);
 
       if (!result.success) {
-        toast.error(result.error ?? t('home.rename_failed'));
         setLoading(false);
         return;
       }
@@ -175,23 +168,14 @@ export function FolderRenamerSection() {
       );
       UndoService.addToHistory(historyEntry);
 
-      // Show success toast
-      toast.success(`${pairs.length} ${t('folder_renamer.success_message')}`, {
-        action: {
-          label: t('common.undo'),
-          onClick: () => UndoService.undo(),
-        },
-      });
-
       // Refresh
       if (parentFolder) {
         const subfolders = await FolderService.listSubfolders(parentFolder);
         setFolders(subfolders);
         setSelectedFolders(new Set(subfolders.map((f) => f.path)));
       }
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : t('errors.failed_to_apply_rename');
-      toast.error(errorMessage);
+    } catch {
+      // Silent error handling
     } finally {
       setLoading(false);
     }
@@ -225,11 +209,7 @@ export function FolderRenamerSection() {
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto">
-      <DropZone
-        onFilesReceived={handleFilesReceived}
-        onLoadingChange={setLoading}
-        onError={(msg) => toast.error(msg)}
-      />
+      <DropZone onFilesReceived={handleFilesReceived} onLoadingChange={setLoading} />
 
       {parentFolder && (
         <p className="text-xs sm:text-sm text-muted-foreground truncate px-1">

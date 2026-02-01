@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search, FileText, AlertCircle, File, Loader2, ChevronDown } from 'lucide-react';
+import { Search, FileText, File, ChevronDown } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n';
 import { cn } from '@/lib/utils';
 import type { FileEntry, PreviewRow } from '@/types';
@@ -24,21 +24,6 @@ interface CompactFileListProps {
   onSelectAll: (selected: boolean) => void;
   onSelectFiltered: (paths: string[], selected: boolean) => void;
   onSelectRange?: (paths: string[], selected: boolean) => void;
-  loading?: boolean;
-}
-
-// Skeleton loader for file items
-function FileItemSkeleton() {
-  return (
-    <div className="flex items-center gap-3 p-2.5 animate-pulse">
-      <div className="size-4 rounded bg-muted" />
-      <div className="flex flex-1 items-center gap-3">
-        <div className="size-4 rounded bg-muted" />
-        <div className="flex-1 h-4 rounded bg-muted w-32" />
-      </div>
-      <div className="h-5 w-12 rounded bg-muted" />
-    </div>
-  );
 }
 
 export function CompactFileList({
@@ -49,7 +34,6 @@ export function CompactFileList({
   onSelectAll,
   onSelectFiltered,
   onSelectRange,
-  loading = false,
 }: CompactFileListProps) {
   const t = useI18n();
   const [filter, setFilter] = useState('');
@@ -130,8 +114,7 @@ export function CompactFileList({
 
     if (row.conflict) {
       return (
-        <Badge variant="destructive" className="text-[10px] h-5 gap-1">
-          <AlertCircle className="h-3 w-3" />
+        <Badge variant="destructive" className="text-[10px] h-5">
           {t('preview_panel.status_conflict')}
         </Badge>
       );
@@ -151,25 +134,6 @@ export function CompactFileList({
       </Badge>
     );
   };
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="space-y-3 animate-in fade-in duration-300">
-        <div className="flex gap-2">
-          <div className="h-9 flex-1 rounded-md bg-muted animate-pulse" />
-          <div className="h-9 w-24 rounded-md bg-muted animate-pulse" />
-        </div>
-        <div className="border rounded-md overflow-hidden">
-          <div className="max-h-64 overflow-y-auto">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <FileItemSkeleton key={i} />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (files.length === 0) {
     return null;

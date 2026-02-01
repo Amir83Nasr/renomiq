@@ -6,7 +6,7 @@
 
 import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { FolderOpen, Upload, FolderUp, Loader2, File, Folder } from 'lucide-react';
+import { Upload, FolderUp, File, Folder } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FileService, isTauriEnvironment } from '@/services/file-service';
 import { useI18n } from '@/lib/i18n/i18n';
@@ -15,8 +15,8 @@ import type { FileEntry } from '@/types';
 
 interface DropZoneProps {
   onFilesReceived: (files: FileEntry[], folderPath: string) => void;
-  onLoadingChange: (loading: boolean) => void;
-  onError: (error: string) => void;
+  onLoadingChange?: (loading: boolean) => void;
+  onError?: (error: string) => void;
 }
 
 export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZoneProps) {
@@ -25,7 +25,6 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
   const [isTauri, setIsTauri] = useState(false);
   const [isBrowserSupported, setIsBrowserSupported] = useState(false);
   const [isFileSelectionSupported, setIsFileSelectionSupported] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setIsTauri(isTauriEnvironment());
@@ -52,8 +51,7 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
             const paths = event.payload.paths;
             if (paths.length > 0) {
               try {
-                setIsLoading(true);
-                onLoadingChange(true);
+                onLoadingChange?.(true);
 
                 // Check if first item is a directory
                 const firstPath = paths[0];
@@ -84,10 +82,9 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
               } catch (err: unknown) {
                 const errorMessage =
                   err instanceof Error ? err.message : 'Failed to process dropped items';
-                onError(errorMessage);
+                onError?.(errorMessage);
               } finally {
-                setIsLoading(false);
-                onLoadingChange(false);
+                onLoadingChange?.(false);
               }
             }
           }
@@ -142,8 +139,7 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
       if (isTauri) return;
 
       try {
-        setIsLoading(true);
-        onLoadingChange(true);
+        onLoadingChange?.(true);
 
         // Handle dropped files directly
         if (acceptedFiles.length > 0) {
@@ -168,7 +164,7 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
         }
 
         if (!dirHandle) {
-          onError(t('errors.no_folder_selected'));
+          onError?.(t('errors.no_folder_selected'));
           return;
         }
 
@@ -193,10 +189,9 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to process dropped folder';
-        onError(errorMessage);
+        onError?.(errorMessage);
       } finally {
-        setIsLoading(false);
-        onLoadingChange(false);
+        onLoadingChange?.(false);
       }
     },
     [isTauri, onFilesReceived, onLoadingChange, onError, processDroppedItems, t]
@@ -214,12 +209,10 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
   const handleSelectFolder = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      setIsLoading(true);
-      onLoadingChange(true);
+      onLoadingChange?.(true);
       const folderPath = await FileService.chooseFolder();
       if (!folderPath) {
-        setIsLoading(false);
-        onLoadingChange(false);
+        onLoadingChange?.(false);
         return;
       }
 
@@ -227,10 +220,9 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
       onFilesReceived(entries, folderPath);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to select folder';
-      onError(errorMessage);
+      onError?.(errorMessage);
     } finally {
-      setIsLoading(false);
-      onLoadingChange(false);
+      onLoadingChange?.(false);
     }
   };
 
@@ -238,22 +230,19 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
   const handleSelectFiles = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      setIsLoading(true);
-      onLoadingChange(true);
+      onLoadingChange?.(true);
       const entries = await FileService.chooseFiles();
       if (entries.length === 0) {
-        setIsLoading(false);
-        onLoadingChange(false);
+        onLoadingChange?.(false);
         return;
       }
 
       onFilesReceived(entries, 'selected-files');
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to select files';
-      onError(errorMessage);
+      onError?.(errorMessage);
     } finally {
-      setIsLoading(false);
-      onLoadingChange(false);
+      onLoadingChange?.(false);
     }
   };
 
@@ -266,18 +255,10 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
         'border border-dashed',
         isDragging || isDragActive
           ? 'border-primary bg-primary/5'
-          : 'border-border/60 bg-muted/20 hover:border-primary/40 hover:bg-muted/30',
-        isLoading && 'pointer-events-none'
+          : 'border-border/60 bg-muted/20 hover:border-primary/40 hover:bg-muted/30'
       )}
     >
       <input {...getInputProps()} />
-
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-xl z-10">
-          <Loader2 className="w-5 h-5 text-primary animate-spin" />
-        </div>
-      )}
 
       <div className="flex items-center gap-3 px-4 py-3">
         {/* Icon */}
@@ -310,7 +291,6 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
               variant="outline"
               size="sm"
               type="button"
-              disabled={isLoading}
               onClick={handleSelectFiles}
               className="h-8 px-2.5 text-xs gap-1.5 rounded-lg"
             >
@@ -324,7 +304,6 @@ export function DropZone({ onFilesReceived, onLoadingChange, onError }: DropZone
             <Button
               size="sm"
               type="button"
-              disabled={isLoading}
               onClick={handleSelectFolder}
               className="h-8 px-2.5 text-xs gap-1.5 rounded-lg"
             >

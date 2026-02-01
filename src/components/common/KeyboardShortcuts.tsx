@@ -2,7 +2,6 @@
 
 import { useEffect, useCallback } from 'react';
 import { useI18n } from '@/lib/i18n/i18n';
-import { toast } from 'sonner';
 
 interface KeyboardShortcut {
   key: string;

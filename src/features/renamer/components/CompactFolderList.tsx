@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Folder, AlertCircle } from 'lucide-react';
+import { Search, Folder } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n';
 
 export interface FolderEntry {
@@ -94,8 +94,7 @@ export function CompactFolderList({
 
     if (row.conflict) {
       return (
-        <Badge variant="destructive" className="text-[10px] h-5 gap-1">
-          <AlertCircle className="h-3 w-3" />
+        <Badge variant="destructive" className="text-[10px] h-5">
           {t('preview_panel.status_conflict')}
         </Badge>
       );

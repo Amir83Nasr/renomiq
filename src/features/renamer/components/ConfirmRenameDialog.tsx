@@ -6,7 +6,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowRight, FileText, X, CheckCircle2, Loader2, Files } from 'lucide-react';
+import { ArrowRight, FileText, X, CheckCircle2, Files } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useI18n } from '@/lib/i18n/i18n';
@@ -20,8 +20,6 @@ interface ConfirmRenameDialogProps {
   onCancel?: () => void;
   pairs: RenamePair[];
   loading?: boolean;
-  operationInProgress?: boolean;
-  onAbort?: () => void;
   isTauri?: boolean;
 }
 
@@ -32,8 +30,6 @@ export function ConfirmRenameDialog({
   onCancel,
   pairs,
   loading = false,
-  operationInProgress = false,
-  onAbort,
   isTauri = true,
 }: ConfirmRenameDialogProps) {
   const t = useI18n();
@@ -57,7 +53,7 @@ export function ConfirmRenameDialog({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-        onClick={() => !operationInProgress && handleCancel()}
+        onClick={() => !loading && handleCancel()}
       />
 
       {/* Dialog */}
@@ -67,26 +63,18 @@ export function ConfirmRenameDialog({
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                {operationInProgress ? (
-                  <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                ) : (
-                  <Files className="w-6 h-6 text-primary" />
-                )}
+                <Files className="w-6 h-6 text-primary" />
               </div>
-              {!operationInProgress && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                  {pairs.length}
-                </div>
-              )}
+              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                {pairs.length}
+              </div>
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-foreground">
-                {operationInProgress ? t('common.processing') : t('common.confirm_rename')}
+                {t('common.confirm_rename')}
               </h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {operationInProgress
-                  ? t('common.operation_in_progress_description')
-                  : `${pairs.length} ${t('common.files_to_rename')}`}
+                {`${pairs.length} ${t('common.files_to_rename')}`}
               </p>
             </div>
           </div>
@@ -94,7 +82,7 @@ export function ConfirmRenameDialog({
 
         {/* Content */}
         <div className="px-6 py-5">
-          {!isTauri && !operationInProgress && (
+          {!isTauri && (
             <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
               <div className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-amber-600 text-[10px]">!</span>
@@ -106,7 +94,7 @@ export function ConfirmRenameDialog({
           )}
 
           {/* Preview List */}
-          {!operationInProgress && pairs.length > 0 && (
+          {pairs.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -157,90 +145,29 @@ export function ConfirmRenameDialog({
               )}
             </div>
           )}
-
-          {/* Processing State */}
-          {operationInProgress && (
-            <div className="flex flex-col items-center justify-center py-10 space-y-4">
-              <div className="relative">
-                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="35"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    className="text-muted/20"
-                  />
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="35"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeDasharray="220"
-                    strokeDashoffset="55"
-                    strokeLinecap="round"
-                    className="text-primary animate-spin"
-                    style={{ animationDuration: '1.5s' }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-lg font-bold text-foreground">{pairs.length}</span>
-                </div>
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-foreground">{t('common.processing')}</p>
-                <p className="text-xs text-muted-foreground">
-                  {t('common.operation_in_progress_description')}
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 bg-muted/30 border-t border-border/50 flex gap-3">
-          {operationInProgress ? (
-            onAbort && (
-              <Button variant="outline" onClick={onAbort} className="w-full h-10 text-sm gap-2">
-                <X className="w-4 h-4" />
-                {t('common.abort_operation')}
-              </Button>
-            )
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                disabled={loading}
-                className="flex-1 h-10 text-sm"
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={onConfirm}
-                disabled={isConfirmDisabled}
-                className={cn(
-                  'flex-1 h-10 text-sm gap-2',
-                  isConfirmDisabled && 'opacity-50 cursor-not-allowed'
-                )}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {t('common.processing')}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    {t('common.confirm')}
-                  </>
-                )}
-              </Button>
-            </>
-          )}
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={loading}
+            className="flex-1 h-10 text-sm"
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isConfirmDisabled}
+            className={cn(
+              'flex-1 h-10 text-sm gap-2',
+              isConfirmDisabled && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            {t('common.confirm')}
+          </Button>
         </div>
       </div>
     </div>

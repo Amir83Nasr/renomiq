@@ -7,14 +7,12 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { LanguageToggle } from '@/components/common/LanguageToggle';
 import { ConfirmRenameDialog } from '@/features/renamer/components/ConfirmRenameDialog';
 import { FloatingActionButtons } from '@/components/layout/FloatingActionButtons';
-import { ProgressIndicator } from '@/features/renamer/components/ProgressIndicator';
 
 import { FileService } from '@/services/file-service';
 import { UndoService } from '@/services/undo-service';
 import { useI18n } from '@/lib/i18n/i18n';
 import { CompactFileList } from '@/features/renamer/components/CompactFileList';
 import { CollapsibleRuleEditor } from '@/features/renamer/components/CollapsibleRuleEditor';
-import { toast } from 'sonner';
 
 import type { FileEntry, RenamePair } from '@/types';
 import { applyRenameRules, buildPreview } from '@/lib/utils/rename-rules';
@@ -31,10 +29,6 @@ function FileRenamerSection() {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [progressStatus, setProgressStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(
-    'idle'
-  );
-  const [progressMessage, setProgressMessage] = useState<string>('');
 
   // File selection state
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -73,33 +67,6 @@ function FileRenamerSection() {
     setFolder(sourcePath);
     // Select all files by default
     setSelectedFiles(new Set(receivedFiles.map((f) => f.path)));
-
-    // Show appropriate message based on source
-    const isFileSelection = sourcePath === 'selected-files';
-    toast.success(
-      isFileSelection
-        ? t('dropzone.files_selected') || 'Files selected'
-        : t('rule_editor.files_loaded'),
-      {
-        description: `${receivedFiles.length} ${t('rule_editor.files_loaded')}`,
-      }
-    );
-  };
-
-  const handleLoadingChange = (isLoading: boolean) => {
-    setLoading(isLoading);
-    if (isLoading) {
-      setProgressStatus('loading');
-      setProgressMessage('Loading files...');
-    } else {
-      setProgressStatus('idle');
-    }
-  };
-
-  const handleError = (errorMessage: string) => {
-    toast.error(errorMessage);
-    setProgressStatus('error');
-    setProgressMessage(errorMessage);
   };
 
   // Handle file selection
@@ -195,27 +162,21 @@ function FileRenamerSection() {
       abortController.abort();
       setAbortController(null);
       setLoading(false);
-      setProgressStatus('idle');
-      toast.info(t('common.operation_cancelled'));
     }
     setShowConfirmDialog(false);
-  }, [abortController, t]);
+  }, [abortController]);
 
   async function handleApplyRename() {
     const controller = new AbortController();
     setAbortController(controller);
     setLoading(true);
-    setProgressStatus('loading');
-    setProgressMessage('Applying rename changes...');
     try {
       const pairs: RenamePair[] = preview
         .filter((p) => p.newName && p.newName !== p.oldName && !p.conflict)
         .map((p) => ({ from: p.path, to: p.newPath! }));
 
       if (pairs.length === 0) {
-        toast.warning(t('home.no_changes_to_apply'));
         setLoading(false);
-        setProgressStatus('idle');
         return;
       }
 
@@ -227,17 +188,13 @@ function FileRenamerSection() {
         const { browserApplyRenames } = await import('@/services/browser-file-service');
         result = await browserApplyRenames(dirHandle, pairs);
       } else {
-        toast.error(t('errors.no_folder_selected'));
         setLoading(false);
         setShowConfirmDialog(false);
         return;
       }
 
       if (!result.success) {
-        toast.error(result.error ?? t('home.rename_failed'));
         setLoading(false);
-        setProgressStatus('error');
-        setProgressMessage(result.error ?? t('home.rename_failed'));
         return;
       }
 
@@ -249,32 +206,17 @@ function FileRenamerSection() {
       );
       UndoService.addToHistory(historyEntry);
 
-      // Show success toast
-      toast.success(`${pairs.length} ${t('home.rename_success')}`, {
-        action: {
-          label: t('common.undo'),
-          onClick: () => UndoService.undo(),
-        },
-      });
-
-      setProgressStatus('success');
-      setProgressMessage(`${pairs.length} files renamed successfully!`);
-
       // Only refresh folder contents if a folder was selected (not individual files)
       if (folder && folder !== 'selected-files') {
         const entries = await FileService.listFiles(folder);
         setFiles(entries);
         setSelectedFiles(new Set(entries.map((f) => f.path)));
       }
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : t('errors.failed_to_apply_rename');
-      toast.error(errorMessage);
-      setProgressStatus('error');
-      setProgressMessage(errorMessage);
+    } catch {
+      // Silent error handling
     } finally {
       setLoading(false);
       setAbortController(null);
-      setTimeout(() => setProgressStatus('idle'), 3000);
     }
   }
 
@@ -301,15 +243,7 @@ function FileRenamerSection() {
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto pb-24 md:pb-0">
-      <DropZone
-        onFilesReceived={handleFilesReceived}
-        onLoadingChange={handleLoadingChange}
-        onError={handleError}
-      />
-
-      {progressStatus !== 'idle' && (
-        <ProgressIndicator status={progressStatus} message={progressMessage} />
-      )}
+      <DropZone onFilesReceived={handleFilesReceived} />
 
       {folder && (
         <div className="flex items-center justify-between px-1">
@@ -383,8 +317,6 @@ function FileRenamerSection() {
         onCancel={handleAbortOperation}
         pairs={getConfirmPairs()}
         loading={loading}
-        operationInProgress={loading}
-        onAbort={handleAbortOperation}
         isTauri={isTauri}
       />
     </div>
