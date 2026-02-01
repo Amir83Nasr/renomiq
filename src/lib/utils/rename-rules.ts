@@ -7,9 +7,13 @@ export type {
   RenameOptions,
 } from '@/types';
 
-import type { RenameRule, RenameOptions, FileEntry, PreviewRow } from '@/types';
+import type { RenameRule, RenameOptions, FileEntry, PreviewRow, SeriesOptions } from '@/types';
 
-export function applyRenameRules(opts: RenameOptions): RenameRule[] {
+export interface ExtendedRenameOptions extends RenameOptions {
+  series?: SeriesOptions;
+}
+
+export function applyRenameRules(opts: ExtendedRenameOptions): RenameRule[] {
   const rules: RenameRule[] = [];
 
   // Complete rename has priority over other rules
@@ -37,6 +41,20 @@ export function applyRenameRules(opts: RenameOptions): RenameRule[] {
   if (opts.numbering) {
     rules.push({ type: 'numbering', width: opts.numberWidth });
   }
+  if (opts.series?.enabled) {
+    rules.push({
+      type: 'series',
+      seriesName: opts.series.seriesName,
+      includeSeason: opts.series.includeSeason,
+      useExistingEpisodeNumbers: opts.series.useExistingEpisodeNumbers,
+      seasonNumber: opts.series.seasonNumber,
+      startEpisode: opts.series.startEpisode,
+      seasonPrefix: opts.series.seasonPrefix,
+      episodePrefix: opts.series.episodePrefix,
+      seasonNumberWidth: opts.series.seasonNumberWidth,
+      episodeNumberWidth: opts.series.episodeNumberWidth,
+    });
+  }
   return rules;
 }
 
@@ -47,7 +65,61 @@ function padNumber(value: number, width?: number): string {
   return String(value).padStart(width, '0');
 }
 
-function applyRulesToBaseName(base: string, rules: RenameRule[], index: number): string {
+// Common patterns for episode numbers in filenames
+// Ordered by priority - more specific patterns first
+const EPISODE_PATTERNS = [
+  // Episode X, Ep X, E X (with various separators including space)
+  /(?:episode|ep|e)[\s._-]+(\d{1,3})/i,
+  // 1x05 (season x episode format - capture episode part)
+  /\d+x(\d{1,3})(?:\s|$|[^\d])/i,
+  // S01E05 (season episode format - capture episode part)
+  /s\d+[e\s](\d{1,3})(?:\s|$|[^\d])/i,
+  // Numbers surrounded by brackets/parentheses: (05), [05], {05}
+  /[\[{(](\d{1,3})[\]})]/,
+  // Standalone numbers at the end: "file 05" or "file_05"
+  /[\s._-](\d{1,3})(?:\s*$|\s*[^\d])/,
+  // Numbers with "part" prefix: part 5, pt 3
+  /(?:part|pt)[\s._-]+(\d{1,3})/i,
+  // Any standalone 1-3 digit number surrounded by non-digits (as last resort)
+  /[^\d](\d{1,3})[^\d]/,
+];
+
+/**
+ * Extract episode number from filename
+ * Returns null if no episode number found
+ *
+ * Examples:
+ *   "Name ep 12.mp4" -> 12
+ *   "Name episode 5.mp4" -> 5
+ *   "S01E05.mp4" -> 5
+ *   "1x10.mp4" -> 10
+ *   "Show [05].mp4" -> 5
+ */
+export function extractEpisodeNumber(filename: string): number | null {
+  const baseName = filename.replace(/\.[^/.]+$/, ''); // Remove extension
+
+  // Add spaces at beginning and end to help with pattern matching
+  const paddedName = ` ${baseName} `;
+
+  for (const pattern of EPISODE_PATTERNS) {
+    const match = paddedName.match(pattern);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > 0 && num <= 999) {
+        // Reasonable range for episodes (1-999)
+        return num;
+      }
+    }
+  }
+  return null;
+}
+
+function applyRulesToBaseName(
+  base: string,
+  rules: RenameRule[],
+  index: number,
+  originalFileName?: string
+): string {
   let name = base;
   let hasRenameRule = false;
   let renameBase = '';
@@ -88,6 +160,45 @@ function applyRulesToBaseName(base: string, rules: RenameRule[], index: number):
         name = `${name}_${padNumber(displayIndex, rule.width)}`;
         break;
       }
+      case 'series': {
+        const seriesName = rule.seriesName?.trim() || '';
+        const includeSeason = rule.includeSeason ?? true;
+        const useExistingEpisodeNumbers = rule.useExistingEpisodeNumbers ?? false;
+        const season = rule.seasonNumber ?? 1;
+        const seasonWidth = rule.seasonNumberWidth ?? 2;
+        const episodeWidth = rule.episodeNumberWidth ?? 2;
+
+        // Determine episode number
+        let episode: number;
+        if (useExistingEpisodeNumbers && originalFileName) {
+          // Try to extract episode number from original filename
+          const extractedEpisode = extractEpisodeNumber(originalFileName);
+          episode = extractedEpisode ?? rule.startEpisode ?? 1;
+        } else {
+          // Use sequential numbering starting from startEpisode
+          episode = (rule.startEpisode ?? 1) + index;
+        }
+
+        // Build season part (if enabled)
+        let seasonStr = '';
+        if (includeSeason) {
+          seasonStr =
+            rule.seasonPrefix === 'Season'
+              ? `Season ${season}`
+              : `S${padNumber(season, seasonWidth)}`;
+        }
+
+        // Build episode part
+        const episodeStr =
+          rule.episodePrefix === 'Episode'
+            ? `Episode ${episode}`
+            : `E${padNumber(episode, episodeWidth)}`;
+
+        // Combine: SeriesName Season Episode
+        const parts = [seriesName, seasonStr, episodeStr].filter((p) => p.length > 0);
+        name = parts.join(' ');
+        break;
+      }
     }
   }
 
@@ -105,7 +216,7 @@ export function buildPreview(files: FileEntry[], rules: RenameRule[]): PreviewRo
     const base = dotIndex > 0 ? file.name.slice(0, dotIndex) : file.name;
     const ext = dotIndex > 0 ? file.name.slice(dotIndex) : '';
 
-    const newBase = rules.length ? applyRulesToBaseName(base, rules, index) : base;
+    const newBase = rules.length ? applyRulesToBaseName(base, rules, index, file.name) : base;
 
     const newName = `${newBase}${ext}`;
     const changed = newName !== file.name;

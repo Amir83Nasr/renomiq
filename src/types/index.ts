@@ -10,13 +10,23 @@ export interface FileEntry {
 }
 
 export interface RenameRule {
-  type: 'search-replace' | 'prefix' | 'suffix' | 'numbering' | 'rename';
+  type: 'search-replace' | 'prefix' | 'suffix' | 'numbering' | 'rename' | 'series';
   search?: string;
   replace?: string;
   value?: string;
   width?: number;
   newName?: string;
   keepExtension?: boolean;
+  // Series specific
+  seriesName?: string;
+  includeSeason?: boolean;
+  seasonNumber?: number;
+  startEpisode?: number;
+  seasonPrefix?: 'S' | 'Season';
+  episodePrefix?: 'E' | 'Episode';
+  seasonNumberWidth?: 1 | 2 | 3;
+  episodeNumberWidth?: 1 | 2 | 3;
+  useExistingEpisodeNumbers?: boolean;
 }
 
 export interface PreviewRow {
@@ -69,4 +79,17 @@ export interface DeleteResult {
   success: boolean;
   deletedCount: number;
   error?: string;
+}
+
+export interface SeriesOptions {
+  enabled: boolean;
+  seriesName: string;
+  includeSeason: boolean;
+  seasonNumber: number;
+  startEpisode: number;
+  seasonPrefix: 'S' | 'Season';
+  episodePrefix: 'E' | 'Episode';
+  seasonNumberWidth: 1 | 2 | 3;
+  episodeNumberWidth: 1 | 2 | 3;
+  useExistingEpisodeNumbers: boolean;
 }

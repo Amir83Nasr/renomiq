@@ -97,6 +97,20 @@ export default {
     new_name: 'New Name',
     new_name_placeholder: 'e.g. document',
     keep_extension: 'Keep file extension',
+    // Series
+    series: 'Series / TV Shows',
+    enable_series: 'Enable series naming',
+    series_name: 'Series Name',
+    series_name_placeholder: 'e.g. Breaking Bad',
+    include_season: 'Include season number',
+    season_number: 'Season',
+    start_episode: 'Start Episode',
+    season_prefix: 'Season Prefix',
+    episode_prefix: 'Episode Prefix',
+    season_number_width: 'Season Digits',
+    episode_number_width: 'Episode Digits',
+    use_existing_episode_numbers: 'Use existing episode numbers from filenames',
+    preview_example: 'Preview',
   },
 
   preview_panel: {

@@ -16,11 +16,31 @@ import { CompactFileList } from '@/features/renamer/components/CompactFileList';
 import { CollapsibleRuleEditor } from '@/features/renamer/components/CollapsibleRuleEditor';
 
 import type { FileEntry, RenamePair } from '@/types';
-import { applyRenameRules, buildPreview } from '@/lib/utils/rename-rules';
+import { applyRenameRules, buildPreview, extractEpisodeNumber } from '@/lib/utils/rename-rules';
 import type { RenameRule } from '@/lib/utils/rename-rules';
 
 function useRenamePreview(files: FileEntry[], rules: RenameRule[]) {
   return useMemo(() => buildPreview(files, rules), [files, rules]);
+}
+
+// Sort files naturally by episode number or name
+function sortFilesNaturally(filesToSort: FileEntry[]): FileEntry[] {
+  return [...filesToSort].sort((a, b) => {
+    const epA = extractEpisodeNumber(a.name);
+    const epB = extractEpisodeNumber(b.name);
+
+    // If both have episode numbers, sort by episode number
+    if (epA !== null && epB !== null) {
+      return epA - epB;
+    }
+
+    // If only one has episode number, put it first
+    if (epA !== null) return -1;
+    if (epB !== null) return 1;
+
+    // Otherwise, sort alphabetically (natural sort)
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
+  });
 }
 
 // File Renamer Section Component with improved UX
@@ -44,13 +64,22 @@ function FileRenamerSection() {
   const [newName, setNewName] = useState('');
   const [keepExtension, setKeepExtension] = useState(true);
 
-  // Only apply rename rules to selected files
-  const selectedFileEntries = useMemo(() => {
-    return files.filter((f) => selectedFiles.has(f.path));
-  }, [files, selectedFiles]);
+  // Series state
+  const [seriesEnabled, setSeriesEnabled] = useState(false);
+  const [seriesName, setSeriesName] = useState('');
+  const [includeSeason, setIncludeSeason] = useState(true);
+  const [useExistingEpisodeNumbers, setUseExistingEpisodeNumbers] = useState(false);
+  const [seasonNumber, setSeasonNumber] = useState(1);
+  const [startEpisode, setStartEpisode] = useState(1);
+  const [seasonPrefix, setSeasonPrefix] = useState<'S' | 'Season'>('S');
+  const [episodePrefix, setEpisodePrefix] = useState<'E' | 'Episode'>('E');
+  const [seasonNumberWidth, setSeasonNumberWidth] = useState<1 | 2 | 3>(2);
+  const [episodeNumberWidth, setEpisodeNumberWidth] = useState<1 | 2 | 3>(2);
 
+  // Generate preview for ALL files (not just selected) to maintain order consistency
+  // The rename will only be applied to selected files
   const preview = useRenamePreview(
-    selectedFileEntries,
+    files,
     applyRenameRules({
       search,
       replace,
@@ -60,14 +89,27 @@ function FileRenamerSection() {
       numberWidth,
       newName,
       keepExtension,
+      series: {
+        enabled: seriesEnabled,
+        seriesName,
+        includeSeason,
+        useExistingEpisodeNumbers,
+        seasonNumber,
+        startEpisode,
+        seasonPrefix,
+        episodePrefix,
+        seasonNumberWidth,
+        episodeNumberWidth,
+      },
     })
   );
 
   const handleFilesReceived = (receivedFiles: FileEntry[], sourcePath: string) => {
-    setFiles(receivedFiles);
+    const sortedFiles = sortFilesNaturally(receivedFiles);
+    setFiles(sortedFiles);
     setFolder(sourcePath);
     // Select all files by default
-    setSelectedFiles(new Set(receivedFiles.map((f) => f.path)));
+    setSelectedFiles(new Set(sortedFiles.map((f) => f.path)));
   };
 
   // Handle file selection
@@ -143,8 +185,9 @@ function FileRenamerSection() {
     if (folder && folder !== 'selected-files') {
       try {
         const entries = await FileService.listFiles(folder);
-        setFiles(entries);
-        setSelectedFiles(new Set(entries.map((f) => f.path)));
+        const sortedEntries = sortFilesNaturally(entries);
+        setFiles(sortedEntries);
+        setSelectedFiles(new Set(sortedEntries.map((f) => f.path)));
       } catch {
         // Silent error handling
       }
@@ -282,8 +325,9 @@ function FileRenamerSection() {
       // Only refresh folder contents if a folder was selected (not individual files)
       if (folder && folder !== 'selected-files') {
         const entries = await FileService.listFiles(folder);
-        setFiles(entries);
-        setSelectedFiles(new Set(entries.map((f) => f.path)));
+        const sortedEntries = sortFilesNaturally(entries);
+        setFiles(sortedEntries);
+        setSelectedFiles(new Set(sortedEntries.map((f) => f.path)));
       }
     } catch {
       // Silent error handling
@@ -366,6 +410,17 @@ function FileRenamerSection() {
           numberWidth={numberWidth}
           newName={newName}
           keepExtension={keepExtension}
+          // Series props
+          seriesEnabled={seriesEnabled}
+          seriesName={seriesName}
+          includeSeason={includeSeason}
+          useExistingEpisodeNumbers={useExistingEpisodeNumbers}
+          seasonNumber={seasonNumber}
+          startEpisode={startEpisode}
+          seasonPrefix={seasonPrefix}
+          episodePrefix={episodePrefix}
+          seasonNumberWidth={seasonNumberWidth}
+          episodeNumberWidth={episodeNumberWidth}
           loading={loading}
           hasItems={selectedFiles.size > 0}
           onSearchChange={setSearch}
@@ -376,6 +431,17 @@ function FileRenamerSection() {
           onNumberWidthChange={setNumberWidth}
           onNewNameChange={setNewName}
           onKeepExtensionChange={setKeepExtension}
+          // Series handlers
+          onSeriesEnabledChange={setSeriesEnabled}
+          onSeriesNameChange={setSeriesName}
+          onIncludeSeasonChange={setIncludeSeason}
+          onUseExistingEpisodeNumbersChange={setUseExistingEpisodeNumbers}
+          onSeasonNumberChange={setSeasonNumber}
+          onStartEpisodeChange={setStartEpisode}
+          onSeasonPrefixChange={setSeasonPrefix}
+          onEpisodePrefixChange={setEpisodePrefix}
+          onSeasonNumberWidthChange={setSeasonNumberWidth}
+          onEpisodeNumberWidthChange={setEpisodeNumberWidth}
           onApplyRename={handleConfirmDialogOpen}
         />
       )}

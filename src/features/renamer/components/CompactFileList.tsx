@@ -48,10 +48,12 @@ export function CompactFileList({
   const [isDeletingFromDevice, setIsDeletingFromDevice] = useState(false);
   const lastClickedIndex = useRef<number | null>(null);
 
-  // Get unique extensions and sort files alphabetically
+  // Get unique extensions - ensure files are sorted alphabetically as safety net
   const { sortedFiles, extensions } = useMemo(() => {
-    // Sort files alphabetically by name
-    const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name));
+    // Sort alphabetically to ensure consistent display order
+    const sorted = [...files].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true })
+    );
     const extSet = new Set<string>();
     sorted.forEach((f) => extSet.add(f.extension.toLowerCase()));
     return { sortedFiles: sorted, extensions: Array.from(extSet).sort() };

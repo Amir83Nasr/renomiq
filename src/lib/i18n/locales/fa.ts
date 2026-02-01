@@ -97,6 +97,20 @@ export default {
     new_name: 'نام جدید',
     new_name_placeholder: 'مثال: document',
     keep_extension: 'پسوند فایل حفظ شود',
+    // Series
+    series: 'سریال / TV Shows',
+    enable_series: 'فعال‌سازی نام‌گذاری سریال',
+    series_name: 'نام سریال',
+    series_name_placeholder: 'مثال: Breaking Bad',
+    include_season: 'شامل شماره فصل',
+    season_number: 'شماره فصل',
+    start_episode: 'شروع از قسمت',
+    season_prefix: 'پیشوند فصل',
+    episode_prefix: 'پیشوند قسمت',
+    season_number_width: 'ارقام فصل',
+    episode_number_width: 'ارقام قسمت',
+    use_existing_episode_numbers: 'استفاده از شماره قسمت موجود در نام فایل',
+    preview_example: 'پیش‌نمایش',
   },
 
   preview_panel: {

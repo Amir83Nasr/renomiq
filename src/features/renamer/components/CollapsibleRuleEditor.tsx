@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useI18n } from '@/lib/i18n/i18n';
-import { ChevronDown, ChevronUp, Search, Type, Hash, Sparkles, FileEdit } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Type, Hash, Sparkles, FileEdit, Tv } from 'lucide-react';
 
 interface CollapsibleRuleEditorProps {
   search: string;
@@ -25,6 +25,17 @@ interface CollapsibleRuleEditorProps {
   numberWidth: number;
   newName?: string;
   keepExtension?: boolean;
+  // Series options
+  seriesEnabled?: boolean;
+  seriesName?: string;
+  includeSeason?: boolean;
+  useExistingEpisodeNumbers?: boolean;
+  seasonNumber?: number;
+  startEpisode?: number;
+  seasonPrefix?: 'S' | 'Season';
+  episodePrefix?: 'E' | 'Episode';
+  seasonNumberWidth?: 1 | 2 | 3;
+  episodeNumberWidth?: 1 | 2 | 3;
   loading: boolean;
   hasItems: boolean;
   onSearchChange: (value: string) => void;
@@ -35,6 +46,17 @@ interface CollapsibleRuleEditorProps {
   onNumberWidthChange: (width: number) => void;
   onNewNameChange?: (value: string) => void;
   onKeepExtensionChange?: (checked: boolean) => void;
+  // Series handlers
+  onSeriesEnabledChange?: (checked: boolean) => void;
+  onSeriesNameChange?: (value: string) => void;
+  onIncludeSeasonChange?: (checked: boolean) => void;
+  onUseExistingEpisodeNumbersChange?: (checked: boolean) => void;
+  onSeasonNumberChange?: (value: number) => void;
+  onStartEpisodeChange?: (value: number) => void;
+  onSeasonPrefixChange?: (prefix: 'S' | 'Season') => void;
+  onEpisodePrefixChange?: (prefix: 'E' | 'Episode') => void;
+  onSeasonNumberWidthChange?: (width: 1 | 2 | 3) => void;
+  onEpisodeNumberWidthChange?: (width: 1 | 2 | 3) => void;
   onApplyRename: () => void;
 }
 
@@ -76,6 +98,17 @@ export function CollapsibleRuleEditor({
   numberWidth,
   newName = '',
   keepExtension = true,
+  // Series options
+  seriesEnabled = false,
+  seriesName = '',
+  includeSeason = true,
+  useExistingEpisodeNumbers = false,
+  seasonNumber = 1,
+  startEpisode = 1,
+  seasonPrefix = 'S',
+  episodePrefix = 'E',
+  seasonNumberWidth = 2,
+  episodeNumberWidth = 2,
   loading,
   hasItems,
   onSearchChange,
@@ -86,6 +119,17 @@ export function CollapsibleRuleEditor({
   onNumberWidthChange,
   onNewNameChange,
   onKeepExtensionChange,
+  // Series handlers
+  onSeriesEnabledChange,
+  onSeriesNameChange,
+  onIncludeSeasonChange,
+  onUseExistingEpisodeNumbersChange,
+  onSeasonNumberChange,
+  onStartEpisodeChange,
+  onSeasonPrefixChange,
+  onEpisodePrefixChange,
+  onSeasonNumberWidthChange,
+  onEpisodeNumberWidthChange,
   onApplyRename,
 }: CollapsibleRuleEditorProps) {
   const t = useI18n();
@@ -107,6 +151,7 @@ export function CollapsibleRuleEditor({
   const hasSearchReplace = search.length > 0;
   const hasPrefixSuffix = prefix.length > 0 || suffix.length > 0;
   const hasNewName = newName.length > 0;
+  const hasSeries = seriesEnabled;
 
   return (
     <Card>
@@ -259,6 +304,212 @@ export function CollapsibleRuleEditor({
                   </SelectContent>
                 </Select>
               </div>
+            )}
+          </div>
+        </CollapsibleSection>
+
+        {/* Series Section */}
+        <CollapsibleSection
+          title={t('rule_editor.series') || 'Series / TV Shows'}
+          icon={<Tv className="h-4 w-4" />}
+          isOpen={openSections.has('series')}
+          onToggle={() => toggleSection('series')}
+          isActive={hasSeries}
+        >
+          <div className="space-y-3">
+            {/* Enable Series Renaming */}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="seriesEnabled"
+                checked={seriesEnabled}
+                onCheckedChange={(checked) => onSeriesEnabledChange?.(checked as boolean)}
+              />
+              <Label htmlFor="seriesEnabled" className="text-sm cursor-pointer">
+                {t('rule_editor.enable_series') || 'Enable series naming'}
+              </Label>
+            </div>
+
+            {seriesEnabled && (
+              <>
+                {/* Series Name */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">
+                    {t('rule_editor.series_name') || 'Series Name'}
+                  </Label>
+                  <Input
+                    placeholder={t('rule_editor.series_name_placeholder') || 'e.g. Breaking Bad'}
+                    value={seriesName}
+                    onChange={(e) => onSeriesNameChange?.(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+
+                {/* Include Season Checkbox */}
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="includeSeason"
+                    checked={includeSeason}
+                    onCheckedChange={(checked) => onIncludeSeasonChange?.(checked as boolean)}
+                  />
+                  <Label htmlFor="includeSeason" className="text-sm cursor-pointer">
+                    {t('rule_editor.include_season') || 'Include season number'}
+                  </Label>
+                </div>
+
+                {/* Use Existing Episode Numbers Checkbox */}
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="useExistingEpisodeNumbers"
+                    checked={useExistingEpisodeNumbers}
+                    onCheckedChange={(checked) =>
+                      onUseExistingEpisodeNumbersChange?.(checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="useExistingEpisodeNumbers" className="text-sm cursor-pointer">
+                    {t('rule_editor.use_existing_episode_numbers') ||
+                      'Use existing episode numbers from filenames'}
+                  </Label>
+                </div>
+
+                {/* Season & Episode Settings */}
+                <div className="grid grid-cols-2 gap-2">
+                  {includeSeason && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">
+                        {t('rule_editor.season_number') || 'Season'}
+                      </Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={seasonNumber}
+                        onChange={(e) => onSeasonNumberChange?.(Number(e.target.value))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">
+                      {t('rule_editor.start_episode') || 'Start Episode'}
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={startEpisode}
+                      onChange={(e) => onStartEpisodeChange?.(Number(e.target.value))}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Prefix Selection */}
+                <div className="grid grid-cols-2 gap-2">
+                  {includeSeason && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">
+                        {t('rule_editor.season_prefix') || 'Season Prefix'}
+                      </Label>
+                      <Select
+                        value={seasonPrefix}
+                        onValueChange={(value) =>
+                          value && onSeasonPrefixChange?.(value as 'S' | 'Season')
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="S">S (S01)</SelectItem>
+                          <SelectItem value="Season">Season (Season 1)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">
+                      {t('rule_editor.episode_prefix') || 'Episode Prefix'}
+                    </Label>
+                    <Select
+                      value={episodePrefix}
+                      onValueChange={(value) =>
+                        value && onEpisodePrefixChange?.(value as 'E' | 'Episode')
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="E">E (E01)</SelectItem>
+                        <SelectItem value="Episode">Episode (Episode 1)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Number Width - Separate for Season and Episode */}
+                <div className="grid grid-cols-2 gap-2">
+                  {includeSeason && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">
+                        {t('rule_editor.season_number_width') || 'Season Digits'}
+                      </Label>
+                      <Select
+                        value={String(seasonNumberWidth)}
+                        onValueChange={(value) =>
+                          onSeasonNumberWidthChange?.(Number(value) as 1 | 2 | 3)
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 (1)</SelectItem>
+                          <SelectItem value="2">2 (01)</SelectItem>
+                          <SelectItem value="3">3 (001)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">
+                      {t('rule_editor.episode_number_width') || 'Episode Digits'}
+                    </Label>
+                    <Select
+                      value={String(episodeNumberWidth)}
+                      onValueChange={(value) =>
+                        onEpisodeNumberWidthChange?.(Number(value) as 1 | 2 | 3)
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 (1)</SelectItem>
+                        <SelectItem value="2">2 (01)</SelectItem>
+                        <SelectItem value="3">3 (001)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Preview Example */}
+                <div className="p-2 bg-muted/50 rounded text-xs text-muted-foreground">
+                  {t('rule_editor.preview_example') || 'Example'}:{' '}
+                  <span className="font-mono text-foreground">
+                    {seriesName || 'Name'}
+                    {includeSeason && (
+                      <>
+                        {' '}
+                        {seasonPrefix === 'S'
+                          ? `S${String(seasonNumber).padStart(seasonNumberWidth, '0')}`
+                          : `Season ${seasonNumber}`}
+                      </>
+                    )}{' '}
+                    {episodePrefix === 'E'
+                      ? `E${String(startEpisode).padStart(episodeNumberWidth, '0')}`
+                      : `Episode ${startEpisode}`}
+                  </span>
+                </div>
+              </>
             )}
           </div>
         </CollapsibleSection>

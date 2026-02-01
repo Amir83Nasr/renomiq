@@ -1,1 +1,18 @@
-{"default":{"identifier":"default","description":"Default capabilities for the app","local":true,"windows":["main"],"permissions":["core:default","dialog:default","dialog:allow-open","fs:default","fs:allow-read-dir","fs:allow-rename","fs:allow-read","fs:allow-write"]}}
+{
+  "default": {
+    "identifier": "default",
+    "description": "Default capabilities for the app",
+    "local": true,
+    "windows": ["main"],
+    "permissions": [
+      "core:default",
+      "dialog:default",
+      "dialog:allow-open",
+      "fs:default",
+      "fs:allow-read-dir",
+      "fs:allow-rename",
+      "fs:allow-read",
+      "fs:allow-write"
+    ]
+  }
+}
