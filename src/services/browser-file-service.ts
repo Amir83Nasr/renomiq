@@ -1,6 +1,6 @@
 'use client';
 
-import type { FileEntry, RenamePair, ApplyResult, UndoResult } from '@/types';
+import type { FileEntry, RenamePair, ApplyResult, UndoResult, DeleteResult } from '@/types';
 import { isTauriEnvironment } from './tauri';
 
 // Browser-safe file operations for non-Tauri environments
@@ -108,6 +108,29 @@ export async function browserUndoRenames(
   return {
     success: result.success,
     restoredCount: pairs.length,
+  };
+}
+
+export async function browserDeleteFiles(
+  handle: globalThis.FileSystemDirectoryHandle,
+  fileNames: string[]
+): Promise<DeleteResult> {
+  let deletedCount = 0;
+  let errorCount = 0;
+
+  for (const fileName of fileNames) {
+    try {
+      await handle.removeEntry(fileName);
+      deletedCount++;
+    } catch (error) {
+      console.error(`Failed to delete file: ${fileName}`, error);
+      errorCount++;
+    }
+  }
+
+  return {
+    success: errorCount === 0,
+    deletedCount,
   };
 }
 

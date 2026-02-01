@@ -1,6 +1,6 @@
 'use client';
 
-import type { FileEntry, RenamePair, ApplyResult, UndoResult } from '@/types';
+import type { FileEntry, RenamePair, ApplyResult, UndoResult, DeleteResult } from '@/types';
 
 // Dynamically import invoke to avoid issues with SSR
 async function getInvoke() {
@@ -135,6 +135,18 @@ export class TauriService {
       return entries;
     } catch (error) {
       console.error('Failed to list subfolders:', error);
+      throw error;
+    }
+  }
+
+  static async deleteFiles(paths: string[]): Promise<DeleteResult> {
+    ensureTauri();
+    try {
+      const invoke = await getInvoke();
+      const result = await invoke<DeleteResult>('delete_files', { paths });
+      return result;
+    } catch (error) {
+      console.error('Failed to delete files:', error);
       throw error;
     }
   }

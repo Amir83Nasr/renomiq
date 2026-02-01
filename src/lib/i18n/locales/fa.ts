@@ -35,6 +35,8 @@ export default {
     undo: 'برگشت',
     undo_success: 'تغییرات با موفقیت برگشت داده شد',
     confirm: 'تأیید',
+    confirm_delete: 'تأیید حذف',
+    confirm_delete_selected: 'آیا از حذف {count} فایل انتخاب شده اطمینان دارید؟',
     confirm_rename: 'تأیید تغییر نام',
     confirm_rename_description: 'آیا مطمئن هستید که می‌خواهید این تغییرات را اعمال کنید؟',
     files_to_rename: 'فایل‌های تغییر نام یافته',
@@ -186,5 +188,24 @@ export default {
     no_folders_found: 'پوشه‌ای یافت نشد',
     success_message: 'پوشه با موفقیت تغییر نام یافت',
     undo_description: 'تغییر نام',
+  },
+
+  // Undo
+  undo: {
+    confirm_description: 'آیا می‌خواهید تغییر نام {count} فایل را برگردانید؟',
+  },
+
+  // Delete
+  delete: {
+    remove_selected: 'حذف فایل‌های انتخاب شده',
+    confirm_description:
+      'آیا از حذف {count} فایل انتخاب شده اطمینان دارید؟ این عمل قابل بازگشت نیست.',
+    delete_from_device: 'حذف از دستگاه',
+    delete_from_device_title: '⚠️ حذف دائمی از دستگاه',
+    delete_from_device_description:
+      'این عمل فایل‌ها را به طور دائمی از دستگاه شما حذف می‌کند و قابل بازگشت نیست. آیا مطمئن هستید؟',
+    delete_permanent_warning: '⚠️ این عملیات قابل بازگشت نیست!',
+    delete_success: 'فایل‌ها با موفقیت حذف شدند',
+    delete_failed: 'خطا در حذف فایل‌ها',
   },
 };

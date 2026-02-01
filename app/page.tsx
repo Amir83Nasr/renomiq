@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { LanguageToggle } from '@/components/common/LanguageToggle';
 import { ConfirmRenameDialog } from '@/features/renamer/components/ConfirmRenameDialog';
 import { FloatingActionButtons } from '@/components/layout/FloatingActionButtons';
+import { UndoButton } from '@/features/renamer/components/UndoButton';
 
 import { FileService } from '@/services/file-service';
 import { UndoService } from '@/services/undo-service';
@@ -119,6 +120,37 @@ function FileRenamerSection() {
     });
   }, [files]);
 
+  // Handle delete files from list
+  const handleDeleteFiles = useCallback((pathsToDelete: string[]) => {
+    setFiles((prevFiles) => {
+      const newFiles = prevFiles.filter((f) => !pathsToDelete.includes(f.path));
+      // If no files left, clear folder state
+      if (newFiles.length === 0) {
+        setFolder(null);
+      }
+      return newFiles;
+    });
+    setSelectedFiles((prev) => {
+      const newSelected = new Set(prev);
+      pathsToDelete.forEach((path) => newSelected.delete(path));
+      return newSelected;
+    });
+  }, []);
+
+  // Handle undo complete - refresh file list
+  const handleUndoComplete = useCallback(async () => {
+    // Refresh folder contents if a folder was selected
+    if (folder && folder !== 'selected-files') {
+      try {
+        const entries = await FileService.listFiles(folder);
+        setFiles(entries);
+        setSelectedFiles(new Set(entries.map((f) => f.path)));
+      } catch {
+        // Silent error handling
+      }
+    }
+  }, [folder]);
+
   const handleClearAll = useCallback(() => {
     setFiles([]);
     setFolder(null);
@@ -156,6 +188,47 @@ function FileRenamerSection() {
       setDirHandle(handle);
     }
   }, [folder, isTauri]);
+
+  // Handle delete files from device
+  const handleDeleteFromDevice = useCallback(
+    async (pathsToDelete: string[]) => {
+      if (pathsToDelete.length === 0) return;
+
+      try {
+        let result;
+        if (isTauri) {
+          const { TauriService } = await import('@/services/tauri');
+          result = await TauriService.deleteFiles(pathsToDelete);
+        } else if (dirHandle) {
+          const { browserDeleteFiles } = await import('@/services/browser-file-service');
+          const fileNames = pathsToDelete.map((path) => path.split('/').pop()!).filter(Boolean);
+          result = await browserDeleteFiles(dirHandle, fileNames);
+        } else {
+          throw new Error('No directory access available');
+        }
+
+        if (result.success) {
+          // Remove deleted files from the list
+          setFiles((prevFiles) => {
+            const newFiles = prevFiles.filter((f) => !pathsToDelete.includes(f.path));
+            if (newFiles.length === 0) {
+              setFolder(null);
+            }
+            return newFiles;
+          });
+          setSelectedFiles((prev) => {
+            const newSelected = new Set(prev);
+            pathsToDelete.forEach((path) => newSelected.delete(path));
+            return newSelected;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to delete files:', error);
+        throw error;
+      }
+    },
+    [isTauri, dirHandle]
+  );
 
   const handleAbortOperation = useCallback(() => {
     if (abortController) {
@@ -273,8 +346,15 @@ function FileRenamerSection() {
           onSelectionChange={handleSelectionChange}
           onSelectAll={handleSelectAll}
           onSelectFiltered={handleSelectFiltered}
+          onDeleteFiles={handleDeleteFiles}
+          onDeleteFromDevice={handleDeleteFromDevice}
         />
       )}
+
+      {/* Undo Button - Shows when there's history */}
+      <div className="flex justify-center">
+        <UndoButton onUndoComplete={handleUndoComplete} />
+      </div>
 
       {files.length > 0 && (
         <CollapsibleRuleEditor

@@ -64,3 +64,9 @@ export interface UndoResult {
   restoredCount: number;
   error?: string;
 }
+
+export interface DeleteResult {
+  success: boolean;
+  deletedCount: number;
+  error?: string;
+}

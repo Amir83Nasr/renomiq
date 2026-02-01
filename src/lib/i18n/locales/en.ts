@@ -35,6 +35,8 @@ export default {
     undo: 'Undo',
     undo_success: 'Changes successfully reverted',
     confirm: 'Confirm',
+    confirm_delete: 'Confirm Delete',
+    confirm_delete_selected: 'Are you sure you want to delete {count} selected files?',
     confirm_rename: 'Confirm Rename',
     confirm_rename_description: 'Are you sure you want to apply these changes?',
     files_to_rename: 'Files to rename',
@@ -186,5 +188,24 @@ export default {
     no_folders_found: 'No folders found',
     success_message: 'folders renamed successfully',
     undo_description: 'Rename',
+  },
+
+  // Undo
+  undo: {
+    confirm_description: 'Are you sure you want to revert the rename of {count} files?',
+  },
+
+  // Delete
+  delete: {
+    remove_selected: 'Remove Selected Files',
+    confirm_description:
+      'Are you sure you want to delete {count} selected files from the list? This action cannot be undone.',
+    delete_from_device: 'Delete from Device',
+    delete_from_device_title: '⚠️ Permanent Delete from Device',
+    delete_from_device_description:
+      'This action will permanently delete files from your device and cannot be undone. Are you sure?',
+    delete_permanent_warning: '⚠️ This operation cannot be undone!',
+    delete_success: 'Files deleted successfully',
+    delete_failed: 'Failed to delete files',
   },
 };

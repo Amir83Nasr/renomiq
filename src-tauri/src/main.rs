@@ -102,6 +102,13 @@ pub struct UndoResult {
     pub error: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DeleteResult {
+    pub success: bool,
+    pub deleted_count: usize,
+    pub error: Option<String>,
+}
+
 #[tauri::command]
 fn apply_renames(pairs: Vec<RenamePair>) -> Result<ApplyResult, String> {
     // Detect conflicts in target paths
@@ -231,6 +238,41 @@ fn list_subfolders(folder: String) -> Result<Vec<FolderEntry>, String> {
     Ok(entries)
 }
 
+#[tauri::command]
+fn delete_files(paths: Vec<String>) -> Result<DeleteResult, String> {
+    let mut deleted_count = 0;
+    let mut error_msg = None;
+
+    for path_str in &paths {
+        let path = PathBuf::from(path_str);
+        
+        // Security check: ensure it's a file, not a directory
+        if path.is_dir() {
+            error_msg = Some(format!("Cannot delete directory: {}", path_str));
+            continue;
+        }
+        
+        // Check if file exists
+        if !path.exists() {
+            error_msg = Some(format!("File not found: {}", path_str));
+            continue;
+        }
+        
+        match fs::remove_file(&path) {
+            Ok(_) => deleted_count += 1,
+            Err(e) => {
+                error_msg = Some(format!("Failed to delete {}: {}", path_str, e));
+            }
+        }
+    }
+
+    Ok(DeleteResult {
+        success: error_msg.is_none() && deleted_count == paths.len(),
+        deleted_count,
+        error: error_msg,
+    })
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -241,7 +283,8 @@ fn main() {
             list_files,
             apply_renames,
             undo_renames,
-            list_subfolders
+            list_subfolders,
+            delete_files
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
