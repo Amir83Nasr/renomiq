@@ -473,7 +473,7 @@ export default function Page() {
   const t = useI18n();
 
   return (
-    <main className="bg-background text-foreground flex min-h-screen flex-col gap-4 sm:gap-6 p-4 sm:p-6 md:p-8 pb-20 md:pb-8">
+    <main className="bg-background text-foreground flex min-h-screen flex-col gap-4 sm:gap-6 p-4 sm:p-6 md:p-8 pb-20 md:pb-8 pt-10">
       <div className="flex items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
           <div>

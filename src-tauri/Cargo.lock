@@ -2539,6 +2539,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-fs",
  "tokio",
+ "window-vibrancy",
 ]
 
 [[package]]

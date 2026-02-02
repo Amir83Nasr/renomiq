@@ -21,6 +21,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tokio = { version = "1", features = ["sync"] }
+window-vibrancy = "0.6"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

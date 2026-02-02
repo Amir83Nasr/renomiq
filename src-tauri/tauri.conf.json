@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "identifier": "com.renomiq.renamer",
-  "productName": "Renomiq Renamer",
+  "productName": "Renomiq",
   "version": "0.1.0",
   "build": {
     "beforeBuildCommand": "pnpm build",
@@ -13,15 +13,18 @@
     "windows": [
       {
         "label": "main",
-        "title": "Renomiq Renamer",
-        "width": 1100,
+        "title": "Renomiq",
+        "width": 800,
         "height": 700,
         "minWidth": 800,
         "minHeight": 500,
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "transparent": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {
